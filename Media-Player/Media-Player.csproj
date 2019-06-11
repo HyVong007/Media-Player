@@ -24,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -34,9 +35,26 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>MediaPlayer.App</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ffme.win, Version=4.1.300.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\FFME.Windows.4.1.300\lib\net472\ffme.win.dll</HintPath>
+    </Reference>
+    <Reference Include="FFmpeg.AutoGen, Version=4.1.0.2, Culture=neutral, PublicKeyToken=9b7632533a381715, processorArchitecture=MSIL">
+      <HintPath>..\packages\FFmpeg.AutoGen.4.1.0.2\lib\net45\FFmpeg.AutoGen.dll</HintPath>
+    </Reference>
+    <Reference Include="MaterialDesignColors, Version=1.1.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MaterialDesignColors.1.1.2\lib\net45\MaterialDesignColors.dll</HintPath>
+    </Reference>
+    <Reference Include="MaterialDesignThemes.Wpf, Version=2.5.1.1345, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MaterialDesignThemes.2.5.1\lib\net45\MaterialDesignThemes.Wpf.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -81,6 +99,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -90,10 +109,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
+    <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
-    </Page>
+      <Generator>MSBuild:Compile</Generator>
+    </ApplicationDefinition>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -108,28 +127,72 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ffmpeg\x32\avcodec-58.dll" />
-    <Content Include="ffmpeg\x32\avdevice-58.dll" />
-    <Content Include="ffmpeg\x32\avfilter-7.dll" />
-    <Content Include="ffmpeg\x32\avformat-58.dll" />
-    <Content Include="ffmpeg\x32\avutil-56.dll" />
-    <Content Include="ffmpeg\x32\ffmpeg.exe" />
-    <Content Include="ffmpeg\x32\ffplay.exe" />
-    <Content Include="ffmpeg\x32\ffprobe.exe" />
-    <Content Include="ffmpeg\x32\postproc-55.dll" />
-    <Content Include="ffmpeg\x32\swresample-3.dll" />
-    <Content Include="ffmpeg\x32\swscale-5.dll" />
-    <Content Include="ffmpeg\x64\avcodec-58.dll" />
-    <Content Include="ffmpeg\x64\avdevice-58.dll" />
-    <Content Include="ffmpeg\x64\avfilter-7.dll" />
-    <Content Include="ffmpeg\x64\avformat-58.dll" />
-    <Content Include="ffmpeg\x64\avutil-56.dll" />
-    <Content Include="ffmpeg\x64\ffmpeg.exe" />
-    <Content Include="ffmpeg\x64\ffplay.exe" />
-    <Content Include="ffmpeg\x64\ffprobe.exe" />
-    <Content Include="ffmpeg\x64\postproc-55.dll" />
-    <Content Include="ffmpeg\x64\swresample-3.dll" />
-    <Content Include="ffmpeg\x64\swscale-5.dll" />
+    <Content Include="ffmpeg\x32\avcodec-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\avdevice-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\avfilter-7.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\avformat-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\avutil-56.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\ffplay.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\ffprobe.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\postproc-55.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\swresample-3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x32\swscale-5.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\avcodec-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\avdevice-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\avfilter-7.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\avformat-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\avutil-56.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\ffplay.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\ffprobe.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\postproc-55.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\swresample-3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ffmpeg\x64\swscale-5.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Resource Include="images\microphone.png" />
     <Resource Include="images\search.png" />
   </ItemGroup>
