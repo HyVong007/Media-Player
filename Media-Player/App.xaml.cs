@@ -2,6 +2,8 @@
 using System.Windows;
 using System.IO;
 using System.IO.IsolatedStorage;
+using System.Diagnostics;
+using System.Reflection;
 
 
 namespace MediaPlayer
@@ -46,6 +48,13 @@ namespace MediaPlayer
 				writer.WriteLine(Properties[ROOT_FOLDER_KEY]);
 				writer.Close();
 			}
+		}
+
+
+		public static void Restart()
+		{
+			Process.Start(Assembly.GetEntryAssembly().Location);
+			Current.Shutdown();
 		}
 	}
 }

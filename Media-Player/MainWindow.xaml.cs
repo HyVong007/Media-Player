@@ -1,11 +1,11 @@
-﻿using System.Windows;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using winform = System.Windows.Forms;
-using System.Windows.Controls;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
 
 
 namespace MediaPlayer
@@ -117,10 +117,16 @@ namespace MediaPlayer
 				if (dialog.ShowDialog() == winform.DialogResult.OK)
 				{
 					Application.Current.Properties[App.ROOT_FOLDER_KEY] = dialog.SelectedPath;
-					new Database(dialog.SelectedPath);
-					UpdateFolderTree();
+					App.Restart();
 				}
 			}
+		}
+
+
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			cancelSearching.Cancel();
+			cancelSearching = new CancellationTokenSource();
 		}
 
 

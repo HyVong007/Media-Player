@@ -15,6 +15,8 @@ namespace MediaPlayer
 
 
 
+		private int totalFiles; 
+
 		public Database(string rootFolderPath)
 		{
 			instance = this;
@@ -26,6 +28,7 @@ namespace MediaPlayer
 				foreach (var folder in a)
 				{
 					folder.files = Directory.GetFiles(folder.path);
+					totalFiles += folder.files.Length;
 					string[] children = Directory.GetDirectories(folder.path);
 					folder.children = new Folder[children.Length];
 					for (int i = 0; i < children.Length; ++i) b.Add(folder.children[i] = new Folder() { path = children[i], parent = folder });
@@ -97,16 +100,66 @@ namespace MediaPlayer
 		}
 
 
-		/// <summary>
-		/// Should NOT use GUI Thread if long finding.
-		/// </summary>
-		/// <param name="keyword"></param>
-		/// <param name="foundResult"></param>
-		/// <returns></returns>
 		public IReadOnlyList<string> Search(string keyword, Action<string, float> foundResult = null, CancellationToken token = default(CancellationToken))
 		{
-			foundResult?.Invoke(@"Nguyen Thanh Tam\Hehe.mp4", 100);
-			return null;
+			void ConvertToCompact(ref string text)
+			{
+				string tmp = text.ToUpper();
+				text = "";
+				foreach (char C in tmp)
+					if (('A' <= C && C <= 'Z') || ('0' <= C && C <= '9')) text += C;
+					else foreach (var kvp in VN_UNICODES)
+							if (kvp.Value.Contains(C))
+							{
+								text += kvp.Key;
+								break;
+							}
+			}
+
+			ConvertToCompact(ref keyword);
+			var result = new List<string>();
+			var a = new List<Folder>() { rootFolder };
+			var b = new List<Folder>();
+			int fileScanned = 0;
+			do
+			{
+				foreach (var folder in a)
+				{
+					foreach (string filePath in folder.files)
+					{
+						if (token.IsCancellationRequested) goto EXIT;
+						++fileScanned;
+
+						// Determine if {fileName} is a search result filtered by keyword ?
+						string fileName = Path.GetFileNameWithoutExtension(filePath);
+						ConvertToCompact(ref fileName);
+						var source = new List<char>();
+						foreach (char C in fileName) source.Add(C);
+						int lastIndex = -1;
+						foreach (char C in keyword)
+							while (true)
+							{
+								int index = source.IndexOf(C);
+								if (index < 0) goto CONTINUE_LOOP_FILE_PATH;
+								source[index] = '\0';
+								if (index > lastIndex)
+								{
+									lastIndex = index; break;
+								}
+							}
+
+						result.Add(filePath);
+						foundResult?.Invoke(filePath, (float)fileScanned / totalFiles);
+						CONTINUE_LOOP_FILE_PATH:;
+					}
+					foreach (var childFolder in folder.children) b.Add(childFolder);
+				}
+
+				var t = a; a = b; b = t; b.Clear();
+			} while (a.Count != 0);
+
+			EXIT:
+			return result;
 		}
 	}
 

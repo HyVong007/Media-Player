@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -15,23 +17,18 @@ using System.Windows.Shapes;
 
 namespace MediaPlayer
 {
-	/// <summary>
-	/// Interaction logic for TestWindow.xaml
-	/// </summary>
 	public partial class TestWindow : Window
 	{
 		public TestWindow()
 		{
 			InitializeComponent();
-			var prop = Application.Current.Properties;
-			textBox.Text = prop[App.ROOT_FOLDER_KEY] as string;
 		}
 
 
-		private void TextBox_KeyDown(object sender, KeyEventArgs e)
+		private void Button_Click(object sender, RoutedEventArgs e)
 		{
-			if (e.Key != Key.Enter) return;
-			Application.Current.Properties[App.ROOT_FOLDER_KEY] = (sender as TextBox).Text;
+			Process.Start(Assembly.GetEntryAssembly().Location);
+			Application.Current.Shutdown();
 		}
 	}
 }

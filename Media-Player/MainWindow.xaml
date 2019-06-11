@@ -15,6 +15,7 @@
 		mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
 		WindowStartupLocation="CenterScreen"
+		Closing="Window_Closing"
 		>
 
 

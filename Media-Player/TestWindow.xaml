@@ -7,6 +7,6 @@
         mc:Ignorable="d"
         Title="TestWindow" Height="450" Width="800">
     <Grid>
-		<TextBox x:Name="textBox" KeyDown="TextBox_KeyDown"/>
+		<Button Click="Button_Click">Restart</Button>
 	</Grid>
 </Window>
