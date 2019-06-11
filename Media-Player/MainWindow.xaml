@@ -1,0 +1,93 @@
+﻿<Window x:Class="MediaPlayer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MediaPlayer"
+		xmlns:m="http://materialdesigninxaml.net/winfx/xaml/themes"
+		TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+		TextElement.FontWeight="Regular"
+		TextElement.FontSize="13"
+		TextOptions.TextFormattingMode="Ideal"
+		TextOptions.TextRenderingMode="Auto"
+		Background="{DynamicResource MaterialDesignPaper}"
+		FontFamily="{DynamicResource MaterialDesignFont}"
+		mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800"
+		WindowStartupLocation="CenterScreen"
+		>
+
+
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="56*"/>
+			<RowDefinition Height="365*"/>
+		</Grid.RowDefinitions>
+
+		<!--Search Box and Microphone Icon-->
+		<Grid Grid.Row="0">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="81*"/>
+				<ColumnDefinition Width="589*"/>
+				<ColumnDefinition Width="123*"/>
+			</Grid.ColumnDefinitions>
+
+			<Image Grid.Column="0" Source="images/search.png"/>
+
+			<TextBox x:Name="textBox"
+				Grid.Column="1" FontSize="30"
+				m:HintAssist.Hint="Tìm kiếm..." 
+				m:HintAssist.IsFloating="True"
+				m:HintAssist.Foreground="Blue"
+				m:HintAssist.FloatingScale="0.5"
+				KeyDown="TextBox_KeyDown"
+				TextChanged="TextBox_TextChanged"
+				ToolTip="Không phân biệt: HOA/thường, Có dấu/không dấu, khoảng trắng, kí tự đặc biệt"/>
+
+			<Button  Grid.Column="2" ToolTip="Nói để tìm kiếm"
+				Height="Auto" Background="Transparent" Margin="0,0,0.333,0">
+				<Image Source="images/microphone.png"/>
+			</Button>
+		</Grid>
+
+		<!--Folder Tree and File List Area-->
+		<Grid Grid.Row="1" Margin="0,0,0.333,-0.333">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="206*" MinWidth="100"/>
+				<ColumnDefinition Width="8*"/>
+				<ColumnDefinition Width="571*" MinWidth="100"/>
+			</Grid.ColumnDefinitions>
+
+			<!--Folder Tree Area-->
+			<DockPanel Grid.Column="0" LastChildFill="True">
+				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Blue" FontSize="20">Thư Mục</TextBlock>
+				<TreeView DockPanel.Dock="Bottom"
+						  x:Name="folderTreeView"
+						  SelectedItemChanged="FolderTreeView_SelectedItemChanged"
+						  Height="Auto"
+						  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+						  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+						  />
+			</DockPanel>
+
+			<!--Border between Folder and File Tree-->
+			<GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"/>
+
+			<!--File List Area-->
+			<DockPanel Grid.Column="2" LastChildFill="True">
+				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Green" FontSize="20" >Danh sách Tập Tin</TextBlock>
+				<ListBox x:Name="fileListBox" DockPanel.Dock="Bottom"
+						 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+						 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+						 SelectionChanged="FileListBox_SelectionChanged"
+						 KeyDown="FileListBox_KeyDown"
+						 MouseDoubleClick="FileListBox_MouseDoubleClick"
+						 ScrollViewer.VerticalScrollBarVisibility="Auto"
+						 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+						 />
+
+			</DockPanel>
+		</Grid>
+
+	</Grid>
+</Window>
