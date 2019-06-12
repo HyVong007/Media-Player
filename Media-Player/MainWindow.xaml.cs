@@ -6,7 +6,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using winform = System.Windows.Forms;
-
+using System;
+using System.Diagnostics;
 
 namespace MediaPlayer
 {
@@ -86,18 +87,14 @@ namespace MediaPlayer
 		{
 			e.Handled = true;
 			if (Keyboard.IsKeyDown(Key.Left) || Keyboard.IsKeyDown(Key.Right) || Keyboard.IsKeyDown(Key.Up) || Keyboard.IsKeyDown(Key.Down)) return;
-			if (fileListBox.SelectedItem is ListBoxItem item) new PlayerWindow($@"{item.ToolTip}\{item.Content.ToString()}").Show();
+			Play();
 		}
 
 
 		private void FileListBox_KeyDown(object sender, KeyEventArgs e)
 		{
 			e.Handled = true;
-			if (Keyboard.IsKeyDown(Key.Enter))
-			{
-				var item = fileListBox.SelectedItem as ListBoxItem;
-				new PlayerWindow($@"{item.ToolTip}\{item.Content.ToString()}").Show();
-			}
+			if (Keyboard.IsKeyDown(Key.Enter)) Play();
 		}
 
 
@@ -105,7 +102,14 @@ namespace MediaPlayer
 		{
 			e.Handled = true;
 			var item = fileListBox.SelectedItem as ListBoxItem;
-			if (item?.IsMouseOver == true) new PlayerWindow($@"{item.ToolTip}\{item.Content.ToString()}").Show();
+			if (item?.IsMouseOver == true) Play();
+		}
+
+
+		private void Play()
+		{
+			var item = fileListBox.SelectedItem as ListBoxItem;
+			if (item != null) new PlayerWindow($@"{item.ToolTip}\{item.Content}") { Owner = this }.Show();
 		}
 
 
@@ -137,8 +141,12 @@ namespace MediaPlayer
 			cancelSearching = new CancellationTokenSource();
 			if (textBox.Text == "")
 			{
-				// Restore content of the current selected folder.
-				UpdateFileList();
+				// Wait to restore content of the current selected folder.
+				((Action<CancellationToken>)(async (CancellationToken token) =>
+			   {
+				   await Task.Delay(500);
+				   if (!token.IsCancellationRequested) UpdateFileList();
+			   }))(cancelSearching.Token);
 				return;
 			}
 
@@ -164,13 +172,11 @@ namespace MediaPlayer
 			fileListBox.Items.Clear();
 			var task = Task.Run(() =>
 			  {
-				  // Thread Pool
 				  Database.instance.Search(textToSearch,
 					  (string filePath, float percent) =>
 					  {
 						  Dispatcher.Invoke(() =>
 						  {
-							  // GUI Thread
 							  if (!token.IsCancellationRequested)
 								  fileListBox.Items.Add(new ListBoxItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) });
 						  });

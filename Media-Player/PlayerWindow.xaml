@@ -14,7 +14,7 @@
 		MouseDoubleClick="Window_MouseDoubleClick"
 		>
 
-	<ff:MediaElement
+	<MediaElement
 		Name="player" Stretch="Fill" LoadedBehavior="Manual"/>
 
 </Window>

@@ -16,12 +16,12 @@ namespace MediaPlayer
 		public App()
 		{
 			InitializeComponent();
-			Unosquare.FFME.Library.FFmpegDirectory = Environment.Is64BitOperatingSystem ? @"ffmpeg\x64" : @"ffmpeg\x32";
 		}
 
 
 		private void Application_Startup(object sender, StartupEventArgs e)
 		{
+			Unosquare.FFME.Library.FFmpegDirectory = Environment.Is64BitOperatingSystem ? @"ffmpeg\x64" : @"ffmpeg\x32";
 			var storage = IsolatedStorageFile.GetUserStoreForDomain();
 			string path = "";
 			try
@@ -46,14 +46,19 @@ namespace MediaPlayer
 			using (var writer = new StreamWriter(stream))
 			{
 				writer.WriteLine(Properties[ROOT_FOLDER_KEY]);
+				writer.Flush();
 				writer.Close();
 			}
+
+			if (restart) Process.Start(Assembly.GetEntryAssembly().Location);
 		}
 
 
+		private static bool restart;
+
 		public static void Restart()
 		{
-			Process.Start(Assembly.GetEntryAssembly().Location);
+			restart = true;
 			Current.Shutdown();
 		}
 	}

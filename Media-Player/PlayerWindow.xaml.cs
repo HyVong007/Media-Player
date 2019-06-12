@@ -17,10 +17,16 @@ namespace MediaPlayer
 {
 	public partial class PlayerWindow : Window
 	{
+		private static PlayerWindow instance;
+
+
 		public PlayerWindow(string path)
 		{
 			InitializeComponent();
+			instance?.Close();
+			instance = this;
 			player.Source = new Uri(@path);
+			Title = $"Đang phát: {System.IO.Path.GetFileName(path)}";
 		}
 
 

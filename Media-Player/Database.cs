@@ -15,7 +15,7 @@ namespace MediaPlayer
 
 
 
-		private int totalFiles; 
+		private int totalFiles;
 
 		public Database(string rootFolderPath)
 		{
@@ -49,6 +49,10 @@ namespace MediaPlayer
 				'Á', 'À', 'Ả', 'Ã', 'Ạ',
 				'Ă', 'Ắ', 'Ằ', 'Ẳ', 'Ẵ', 'Ặ',
 				'Â', 'Ấ', 'Ầ', 'Ẩ', 'Ẫ', 'Ậ'
+			},
+			['D'] = new List<char>()
+			{
+				'Đ'
 			},
 			['E'] = new List<char>()
 			{
@@ -100,7 +104,95 @@ namespace MediaPlayer
 		}
 
 
-		public IReadOnlyList<string> Search(string keyword, Action<string, float> foundResult = null, CancellationToken token = default(CancellationToken))
+		public IReadOnlyList<string> Search(string keyword, Action<string, float> foundResult = null, CancellationToken token = default)
+		{
+			var result = SearchByWord(keyword, foundResult, token);
+			return (token.IsCancellationRequested || result.Count != 0) ? result : SearchByCharacter(keyword, foundResult, token);
+		}
+
+
+		private IReadOnlyList<string> SearchByWord(string keyword, Action<string, float> foundResult = null, CancellationToken token = default(CancellationToken))
+		{
+			// word = {A->Z} or word={0->9}, all characters must be continous.
+			List<string> ToWords(string text)
+			{
+				// Return: true= (A->Z or {Â, Ê, Ô ...}), false= (0->9), null= (other).
+				bool? CheckTypeAndModify(ref char C)
+				{
+					if ('A' <= C && C <= 'Z') return true;
+					if ('0' <= C && C <= '9') return false;
+					foreach (var kvp in VN_UNICODES)
+						if (kvp.Value.Contains(C))
+						{
+							C = kvp.Key; return true;
+						}
+					return null;
+				}
+
+				text = text.ToUpper();
+				var _result = new List<string>();
+				string word = "";
+				int index = 0;
+				while (true)
+				{
+					word = "";
+					char C = text[index];
+					bool? type = CheckTypeAndModify(ref C);
+					if (type != null) word += C;
+
+					while (true)
+					{
+						if (++index == text.Length)
+						{
+							if (word != "") _result.Add(word);
+							return _result;
+						}
+
+						C = text[index];
+						if (CheckTypeAndModify(ref C) == type)
+						{
+							if (type != null) word += C;
+						}
+						else
+						{
+							if (word != "") _result.Add(word);
+							break;
+						}
+					}
+				}
+			}
+
+			var keyList = ToWords(keyword);
+			var a = new List<Folder>() { rootFolder };
+			var b = new List<Folder>();
+			var result = new List<string>();
+			int fileScanned = 0;
+			do
+			{
+				foreach (var folder in a)
+				{
+					foreach (string filePath in folder.files)
+					{
+						if (token.IsCancellationRequested) return result;
+						++fileScanned;
+						string fileName = Path.GetFileNameWithoutExtension(filePath);
+
+						if (SourceIsResult(ToWords(fileName), keyList))
+						{
+							result.Add(filePath);
+							foundResult?.Invoke(filePath, (float)fileScanned / totalFiles);
+						}
+					}
+					foreach (var childFolder in folder.children) b.Add(childFolder);
+				}
+
+				var t = a; a = b; b = t; b.Clear();
+			} while (a.Count != 0);
+			return result;
+		}
+
+
+		private IReadOnlyList<string> SearchByCharacter(string keyword, Action<string, float> foundResult = null, CancellationToken token = default(CancellationToken))
 		{
 			void ConvertToCompact(ref string text)
 			{
@@ -127,39 +219,41 @@ namespace MediaPlayer
 				{
 					foreach (string filePath in folder.files)
 					{
-						if (token.IsCancellationRequested) goto EXIT;
+						if (token.IsCancellationRequested) return result;
 						++fileScanned;
-
-						// Determine if {fileName} is a search result filtered by keyword ?
 						string fileName = Path.GetFileNameWithoutExtension(filePath);
 						ConvertToCompact(ref fileName);
-						var source = new List<char>();
-						foreach (char C in fileName) source.Add(C);
-						int lastIndex = -1;
-						foreach (char C in keyword)
-							while (true)
-							{
-								int index = source.IndexOf(C);
-								if (index < 0) goto CONTINUE_LOOP_FILE_PATH;
-								source[index] = '\0';
-								if (index > lastIndex)
-								{
-									lastIndex = index; break;
-								}
-							}
 
-						result.Add(filePath);
-						foundResult?.Invoke(filePath, (float)fileScanned / totalFiles);
-						CONTINUE_LOOP_FILE_PATH:;
+						if (SourceIsResult(new List<char>(fileName), keyword))
+						{
+							result.Add(filePath);
+							foundResult?.Invoke(filePath, (float)fileScanned / totalFiles);
+						}
 					}
 					foreach (var childFolder in folder.children) b.Add(childFolder);
 				}
 
 				var t = a; a = b; b = t; b.Clear();
 			} while (a.Count != 0);
-
-			EXIT:
 			return result;
+		}
+
+
+		private static bool SourceIsResult<T>(List<T> source, IEnumerable<T> key)
+		{
+			int lastIndex = -1;
+			foreach (var k in key)
+				while (true)
+				{
+					int index = source.IndexOf(k);
+					if (index < 0) return false;
+					source[index] = default;
+					if (index > lastIndex)
+					{
+						lastIndex = index; break;
+					}
+				}
+			return true;
 		}
 	}
 

@@ -43,7 +43,7 @@
 				m:HintAssist.FloatingScale="0.5"
 				KeyDown="TextBox_KeyDown"
 				TextChanged="TextBox_TextChanged"
-				ToolTip="Không phân biệt: HOA/thường, Có dấu/không dấu, khoảng trắng, kí tự đặc biệt"/>
+				ToolTip="Tên bài hát không phân biệt: HOA/thường, có dấu/không dấu, kí tự đặc biệt. Các từ cách nhau bởi khoảng trắng."/>
 
 			<Button  Grid.Column="2" ToolTip="Nói để tìm kiếm"
 				Height="Auto" Background="Transparent" Margin="0,0,0.333,0">
