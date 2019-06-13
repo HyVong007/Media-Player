@@ -38,7 +38,7 @@ namespace MediaPlayer
 				var t = a;
 				a = b; b = t; b.Clear();
 			} while (a.Count != 0);
-			voiceListener = new SpeechRecognitionEngine();
+			/*voiceListener = new SpeechRecognitionEngine();
 			voiceListener.SetInputToDefaultAudioDevice();
 			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) =>
 			{
@@ -51,7 +51,7 @@ namespace MediaPlayer
 			{
 				cancelListening.Cancel(); cancelListening = new CancellationTokenSource();
 			};
-			Task.Run(InitializeVoiceSearch);
+			Task.Run(InitializeVoiceSearch);*/
 		}
 
 		//  ==========================================================================

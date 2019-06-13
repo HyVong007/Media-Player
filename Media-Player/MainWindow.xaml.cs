@@ -24,12 +24,12 @@ namespace MediaPlayer
 		public MainWindow()
 		{
 			InitializeComponent();
-			Database.VoiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
+			/*Database.VoiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
 			Database.SpeechRecognized += (string name) =>
 			{
 				Dispatcher.Invoke(() => MessageBox.Show("SpeechRecognized: " + name));
 
-			};
+			};*/
 			string path = Application.Current.Properties[App.ROOT_FOLDER_KEY] as string;
 			if (path != "") { new Database(path); UpdateFolderTree(); }
 		}
