@@ -21,7 +21,6 @@ namespace MediaPlayer
 
 		private void Application_Startup(object sender, StartupEventArgs e)
 		{
-			Unosquare.FFME.Library.FFmpegDirectory = Environment.Is64BitOperatingSystem ? @"ffmpeg\x64" : @"ffmpeg\x32";
 			var storage = IsolatedStorageFile.GetUserStoreForDomain();
 			string path = "";
 			try
@@ -35,7 +34,6 @@ namespace MediaPlayer
 			}
 			catch (FileNotFoundException) { path = ""; }
 			Properties[ROOT_FOLDER_KEY] = path;
-			if (path != "") new Database(path);
 		}
 
 

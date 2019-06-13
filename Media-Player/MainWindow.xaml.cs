@@ -7,7 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using winform = System.Windows.Forms;
 using System;
-using System.Diagnostics;
+using System.Windows.Media;
+
 
 namespace MediaPlayer
 {
@@ -23,7 +24,14 @@ namespace MediaPlayer
 		public MainWindow()
 		{
 			InitializeComponent();
-			if (Database.instance != null) UpdateFolderTree();
+			Database.VoiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
+			Database.SpeechRecognized += (string name) =>
+			{
+				Dispatcher.Invoke(() => MessageBox.Show("SpeechRecognized: " + name));
+
+			};
+			string path = Application.Current.Properties[App.ROOT_FOLDER_KEY] as string;
+			if (path != "") { new Database(path); UpdateFolderTree(); }
 		}
 
 
@@ -182,6 +190,17 @@ namespace MediaPlayer
 						  });
 					  }, token);
 			  });
+		}
+
+
+		private Task listening;
+
+		private void VoiceButton_Click(object sender, RoutedEventArgs e)
+		{
+			if (listening?.IsCompleted == false) return;
+			var oldBrush = voiceButton.Background;
+			voiceButton.Background = new SolidColorBrush(Color.FromRgb(0, 255, 0));
+			listening = Database.instance.Listen().ContinueWith((Task task) => Dispatcher.Invoke(() => voiceButton.Background = oldBrush));
 		}
 	}
 }

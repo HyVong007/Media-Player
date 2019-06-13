@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MediaPlayer"
-		xmlns:ff="clr-namespace:Unosquare.FFME;assembly=ffme.win"
         mc:Ignorable="d"
         Title="PlayerWindow" Height="450" Width="800"
 		Activated="Window_Activated"
@@ -14,7 +13,6 @@
 		MouseDoubleClick="Window_MouseDoubleClick"
 		>
 
-	<MediaElement
-		Name="player" Stretch="Fill" LoadedBehavior="Manual"/>
+	<MediaElement Name="player" Stretch="Fill" LoadedBehavior="Manual"/>
 
 </Window>

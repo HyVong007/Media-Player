@@ -1,9 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Threading;
-
+using System.Threading.Tasks;
+using System.Speech.Recognition;
+using System.Windows;
 
 namespace MediaPlayer
 {
@@ -37,10 +38,23 @@ namespace MediaPlayer
 				var t = a;
 				a = b; b = t; b.Clear();
 			} while (a.Count != 0);
+			voiceListener = new SpeechRecognitionEngine();
+			voiceListener.SetInputToDefaultAudioDevice();
+			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) =>
+			{
+				MessageBox.Show("SpeechRecognized");
+
+				SpeechRecognized?.Invoke(e.Result.Text);
+			};
+
+			voiceListener.RecognizeCompleted += (object sender, RecognizeCompletedEventArgs e) =>
+			{
+				cancelListening.Cancel(); cancelListening = new CancellationTokenSource();
+			};
+			Task.Run(InitializeVoiceSearch);
 		}
 
 		//  ==========================================================================
-
 
 		private static readonly IReadOnlyDictionary<char, List<char>> VN_UNICODES = new Dictionary<char, List<char>>()
 		{
@@ -113,55 +127,6 @@ namespace MediaPlayer
 
 		private IReadOnlyList<string> SearchByWord(string keyword, Action<string, float> foundResult = null, CancellationToken token = default(CancellationToken))
 		{
-			// word = {A->Z} or word={0->9}, all characters must be continous.
-			List<string> ToWords(string text)
-			{
-				// Return: true= (A->Z or {Â, Ê, Ô ...}), false= (0->9), null= (other).
-				bool? CheckTypeAndModify(ref char C)
-				{
-					if ('A' <= C && C <= 'Z') return true;
-					if ('0' <= C && C <= '9') return false;
-					foreach (var kvp in VN_UNICODES)
-						if (kvp.Value.Contains(C))
-						{
-							C = kvp.Key; return true;
-						}
-					return null;
-				}
-
-				text = text.ToUpper();
-				var _result = new List<string>();
-				string word = "";
-				int index = 0;
-				while (true)
-				{
-					word = "";
-					char C = text[index];
-					bool? type = CheckTypeAndModify(ref C);
-					if (type != null) word += C;
-
-					while (true)
-					{
-						if (++index == text.Length)
-						{
-							if (word != "") _result.Add(word);
-							return _result;
-						}
-
-						C = text[index];
-						if (CheckTypeAndModify(ref C) == type)
-						{
-							if (type != null) word += C;
-						}
-						else
-						{
-							if (word != "") _result.Add(word);
-							break;
-						}
-					}
-				}
-			}
-
 			var keyList = ToWords(keyword);
 			var a = new List<Folder>() { rootFolder };
 			var b = new List<Folder>();
@@ -254,6 +219,119 @@ namespace MediaPlayer
 					}
 				}
 			return true;
+		}
+
+
+		/// <summary>
+		/// Word = {A->Z} or word={0->9}, all characters must be continous.
+		/// </summary>
+		private static List<string> ToWords(string text)
+		{
+			// Return: true= (A->Z or {Â, Ê, Ô ...}), false= (0->9), null= (other).
+			bool? CheckTypeAndModify(ref char C)
+			{
+				if ('A' <= C && C <= 'Z') return true;
+				if ('0' <= C && C <= '9') return false;
+				foreach (var kvp in VN_UNICODES)
+					if (kvp.Value.Contains(C))
+					{
+						C = kvp.Key; return true;
+					}
+				return null;
+			}
+
+			text = text.ToUpper();
+			var _result = new List<string>();
+			string word = "";
+			int index = 0;
+			while (true)
+			{
+				word = "";
+				char C = text[index];
+				bool? type = CheckTypeAndModify(ref C);
+				if (type != null) word += C;
+
+				while (true)
+				{
+					if (++index == text.Length)
+					{
+						if (word != "") _result.Add(word);
+						return _result;
+					}
+
+					C = text[index];
+					if (CheckTypeAndModify(ref C) == type)
+					{
+						if (type != null) word += C;
+					}
+					else
+					{
+						if (word != "") _result.Add(word);
+						break;
+					}
+				}
+			}
+		}
+
+
+
+		private SpeechRecognitionEngine voiceListener;
+
+		private void InitializeVoiceSearch()
+		{
+			var choices = new Choices();
+			var a = new List<Folder>() { rootFolder };
+			var b = new List<Folder>();
+
+			do
+			{
+				foreach (var folder in a)
+				{
+					foreach (string filePath in folder.files)
+					{
+						string name = "";
+						foreach (var w in ToWords(Path.GetFileNameWithoutExtension(filePath))) name += $"{w} ";
+
+						choices.Add(name);
+						//choices.Add(CreateKeyword(Path.GetFileNameWithoutExtension(filePath)));
+					}
+
+					foreach (var childFolder in folder.children) b.Add(childFolder);
+				}
+
+				var t = a; a = b; b = t; b.Clear();
+			} while (a.Count != 0);
+
+			var gb = new GrammarBuilder();
+			gb.Append(choices);
+			//gb.AppendDictation();
+			gb.AppendWildcard();
+			voiceListener.LoadGrammar(new Grammar(gb));
+			VoiceListenerInitialized?.Invoke();
+		}
+
+
+		/// <summary>
+		/// Called by thread pool, NOT Main/GUI Thread.
+		/// </summary>
+		public static event Action VoiceListenerInitialized;
+
+		public static event Action<string> SpeechRecognized;
+
+		private CancellationTokenSource cancelListening = new CancellationTokenSource();
+
+		public async Task Listen()
+		{
+			var token = cancelListening.Token;
+			try
+			{
+				voiceListener.RecognizeAsync();
+			}
+			catch (Exception e)
+			{
+				return;
+			}
+			while (!token.IsCancellationRequested) { await Task.Delay(1); }
 		}
 	}
 

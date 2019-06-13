@@ -45,7 +45,10 @@
 				TextChanged="TextBox_TextChanged"
 				ToolTip="Tên bài hát không phân biệt: HOA/thường, có dấu/không dấu, kí tự đặc biệt. Các từ cách nhau bởi khoảng trắng."/>
 
-			<Button  Grid.Column="2" ToolTip="Nói để tìm kiếm"
+			<Button x:Name="voiceButton"
+				Click="VoiceButton_Click"
+				Visibility="Collapsed"
+				Grid.Column="2" ToolTip="Nói để tìm kiếm"
 				Height="Auto" Background="Transparent" Margin="0,0,0.333,0">
 				<Image Source="images/microphone.png"/>
 			</Button>
