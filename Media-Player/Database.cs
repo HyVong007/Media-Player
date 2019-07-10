@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Speech.Recognition;
 using System.Windows;
 
+
 namespace MediaPlayer
 {
 	public sealed class Database
@@ -38,20 +39,15 @@ namespace MediaPlayer
 				var t = a;
 				a = b; b = t; b.Clear();
 			} while (a.Count != 0);
-			/*voiceListener = new SpeechRecognitionEngine();
+			voiceListener = new SpeechRecognitionEngine();
 			voiceListener.SetInputToDefaultAudioDevice();
-			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) =>
-			{
-				MessageBox.Show("SpeechRecognized");
-
-				SpeechRecognized?.Invoke(e.Result.Text);
-			};
-
+			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) => SpeechRecognized?.Invoke(e.Result.Text);
 			voiceListener.RecognizeCompleted += (object sender, RecognizeCompletedEventArgs e) =>
 			{
 				cancelListening.Cancel(); cancelListening = new CancellationTokenSource();
 			};
-			Task.Run(InitializeVoiceSearch);*/
+			voiceListener.LoadGrammarCompleted += (object sender, LoadGrammarCompletedEventArgs e) => VoiceListenerInitialized?.Invoke();
+			Task.Run(InitializeVoiceSearch).ContinueWith((Task<Grammar> task) => voiceListener.LoadGrammarAsync(task.Result));
 		}
 
 		//  ==========================================================================
@@ -277,7 +273,7 @@ namespace MediaPlayer
 
 		private SpeechRecognitionEngine voiceListener;
 
-		private void InitializeVoiceSearch()
+		private Grammar InitializeVoiceSearch()
 		{
 			var choices = new Choices();
 			var a = new List<Folder>() { rootFolder };
@@ -294,6 +290,8 @@ namespace MediaPlayer
 
 						choices.Add(name);
 						//choices.Add(CreateKeyword(Path.GetFileNameWithoutExtension(filePath)));
+
+						//await Task.Delay(1);
 					}
 
 					foreach (var childFolder in folder.children) b.Add(childFolder);
@@ -306,8 +304,7 @@ namespace MediaPlayer
 			gb.Append(choices);
 			//gb.AppendDictation();
 			gb.AppendWildcard();
-			voiceListener.LoadGrammar(new Grammar(gb));
-			VoiceListenerInitialized?.Invoke();
+			return new Grammar(gb);
 		}
 
 
@@ -323,14 +320,7 @@ namespace MediaPlayer
 		public async Task Listen()
 		{
 			var token = cancelListening.Token;
-			try
-			{
-				voiceListener.RecognizeAsync();
-			}
-			catch (Exception e)
-			{
-				return;
-			}
+			voiceListener.RecognizeAsync();
 			while (!token.IsCancellationRequested) { await Task.Delay(1); }
 		}
 	}

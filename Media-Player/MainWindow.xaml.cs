@@ -8,6 +8,7 @@ using System.Windows.Input;
 using winform = System.Windows.Forms;
 using System;
 using System.Windows.Media;
+using System.Diagnostics;
 
 
 namespace MediaPlayer
@@ -24,12 +25,8 @@ namespace MediaPlayer
 		public MainWindow()
 		{
 			InitializeComponent();
-			/*Database.VoiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
-			Database.SpeechRecognized += (string name) =>
-			{
-				Dispatcher.Invoke(() => MessageBox.Show("SpeechRecognized: " + name));
-
-			};*/
+			Database.VoiceListenerInitialized += () => voiceButton.Visibility = Visibility.Visible;
+			Database.SpeechRecognized += (string name) => MessageBox.Show("SpeechRecognized: " + name);
 			string path = Application.Current.Properties[App.ROOT_FOLDER_KEY] as string;
 			if (path != "") { new Database(path); UpdateFolderTree(); }
 		}
@@ -114,13 +111,6 @@ namespace MediaPlayer
 		}
 
 
-		private void Play()
-		{
-			var item = fileListBox.SelectedItem as ListBoxItem;
-			if (item != null) new PlayerWindow($@"{item.ToolTip}\{item.Content}") { Owner = this }.Show();
-		}
-
-
 		private void TextBox_KeyDown(object sender, KeyEventArgs e)
 		{
 			if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt))
@@ -195,12 +185,75 @@ namespace MediaPlayer
 
 		private Task listening;
 
-		private void VoiceButton_Click(object sender, RoutedEventArgs e)
+		private async void VoiceButton_Click(object sender, RoutedEventArgs e)
 		{
 			if (listening?.IsCompleted == false) return;
 			var oldBrush = voiceButton.Background;
 			voiceButton.Background = new SolidColorBrush(Color.FromRgb(0, 255, 0));
-			listening = Database.instance.Listen().ContinueWith((Task task) => Dispatcher.Invoke(() => voiceButton.Background = oldBrush));
+			await (listening = Database.instance.Listen());
+			voiceButton.Background = oldBrush;
+		}
+
+
+		#region MỞ WINDOWS MEDIA PLAYER
+		private Process wmplayer;
+		private readonly ProcessStartInfo info = new ProcessStartInfo()
+		{
+			FileName = @"C:\Program Files\Windows Media Player\wmplayer.exe",
+			Arguments = "",
+			WindowStyle = ProcessWindowStyle.Maximized
+		};
+
+		private void Play()
+		{
+			void StartWMPlayer()
+			{
+				wmplayer = Process.Start(info);
+				wmplayer.EnableRaisingEvents = true;
+			}
+
+			var item = fileListBox.SelectedItem as ListBoxItem;
+			if (item != null)
+			{
+				string path = $@"{item.ToolTip}\{item.Content}";
+				info.Arguments = $"\"{path}\"";
+				if (wmplayer == null) StartWMPlayer();
+				else
+				{
+					if (wmplayer.IsRunning())
+					{
+						wmplayer.Exited += (object sender, EventArgs e) =>
+							Dispatcher.Invoke(() =>
+							{
+								StartWMPlayer();
+								IsEnabled = true;
+							});
+
+						IsEnabled = false;
+						wmplayer.CloseMainWindow();
+					}
+					else StartWMPlayer();
+				}
+			}
+		}
+		#endregion
+
+
+
+	}
+
+
+
+	public static class ProcessExtension
+	{
+		public static bool IsRunning(this Process process)
+		{
+			try
+			{
+				Process.GetProcessById(process.Id);
+			}
+			catch (Exception) { return false; }
+			return true;
 		}
 	}
 }
