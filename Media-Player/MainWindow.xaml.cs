@@ -217,43 +217,40 @@ namespace MediaPlayer
 			{
 				string path = $@"{item.ToolTip}\{item.Content}";
 				info.Arguments = $"\"{path}\"";
-				if (wmplayer == null) StartWMPlayer();
-				else
+				if (wmplayer?.IsRunning() == true)
 				{
-					if (wmplayer.IsRunning())
-					{
-						wmplayer.Exited += (object sender, EventArgs e) =>
-							Dispatcher.Invoke(() =>
-							{
-								StartWMPlayer();
-								IsEnabled = true;
-							});
+					wmplayer.Exited += (object sender, EventArgs e) =>
+						Dispatcher.Invoke(() =>
+						{
+							StartWMPlayer();
+							IsEnabled = true;
+						});
 
-						IsEnabled = false;
-						wmplayer.CloseMainWindow();
-					}
-					else StartWMPlayer();
+					IsEnabled = false;
+					wmplayer.CloseMainWindow();
 				}
+				else StartWMPlayer();
 			}
 		}
-		#endregion
-
-
-
 	}
+	#endregion
 
 
 
-	public static class ProcessExtension
+}
+
+
+
+public static class ProcessExtension
+{
+	public static bool IsRunning(this Process process)
 	{
-		public static bool IsRunning(this Process process)
+		try
 		{
-			try
-			{
-				Process.GetProcessById(process.Id);
-			}
-			catch (Exception) { return false; }
-			return true;
+			Process.GetProcessById(process.Id);
 		}
+		catch (Exception) { return false; }
+		return true;
 	}
+}
 }
