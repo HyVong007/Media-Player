@@ -15,6 +15,20 @@ namespace MediaPlayer
 {
 	public partial class MainWindow : Window
 	{
+		private static MainWindow instance;
+
+		#region KHỞI TẠO
+		static MainWindow()
+		{
+			Database.initializeCompleted += () => instance.Dispatcher.Invoke(() =>
+			{
+				if (Database.instance.rootFolder == null) return;
+				instance.UpdateFolderTree();
+				PopupWaiting.instance.Close();
+				instance.IsEnabled = true;
+			});
+		}
+
 		public class FolderItem : TreeViewItem
 		{
 			public FolderItem parent;
@@ -24,15 +38,21 @@ namespace MediaPlayer
 
 		public MainWindow()
 		{
+			instance = this;
 			InitializeComponent();
-			Database.VoiceListenerInitialized += () => voiceButton.Visibility = Visibility.Visible;
-			Database.SpeechRecognized += (string name) => MessageBox.Show("SpeechRecognized: " + name);
-			string path = Application.Current.Properties[App.ROOT_FOLDER_KEY] as string;
-			if (path != "") { new Database(path); UpdateFolderTree(); }
+			Database.VoiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
+			Database.SpeechRecognized += (string text) => MessageBox.Show(text);
+			if (App.Current.Properties.Contains(App.PATH_KEY))
+			{
+				IsEnabled = false;
+				new PopupWaiting().Show();
+			}
+			new Database();
 		}
+		#endregion
 
 
-
+		#region FOLDER TREE
 		private void UpdateFolderTree()
 		{
 			void Swap<T>(ref T _obj1, ref T _obj2)
@@ -70,29 +90,38 @@ namespace MediaPlayer
 		}
 
 
-		private void UpdateFileList()
-		{
-			fileListBox.Items.Clear();
-			var folder = (folderTreeView.SelectedItem as FolderItem)?.folder;
-			if (folder == null) return;
-
-			foreach (string f in folder.files) fileListBox.Items.Add(new ListBoxItem() { Content = Path.GetFileName(f), ToolTip = Path.GetDirectoryName(f) });
-		}
-
-
 		private void FolderTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
 		{
 			e.Handled = true;
 			if (textBox.Text != "") textBox.Text = "";
 			else UpdateFileList();
 		}
+		#endregion
 
 
-		private void FileListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		#region FILE LIST
+		/// <summary>
+		/// Gọi bằng GUI Thread, dùng worker Thread để duyệt file. Có thể cancel.
+		/// </summary>
+		private void UpdateFileList()
 		{
-			e.Handled = true;
-			if (Keyboard.IsKeyDown(Key.Left) || Keyboard.IsKeyDown(Key.Right) || Keyboard.IsKeyDown(Key.Up) || Keyboard.IsKeyDown(Key.Down)) return;
-			Play();
+			if (cancelSource?.IsCancellationRequested == false) cancelSource.Cancel();
+			cancelSource = new CancellationTokenSource();
+			var token = cancelSource.Token;
+			fileListBox.Items.Clear();
+			var folder = (folderTreeView.SelectedItem as FolderItem)?.folder;
+			if (folder == null) return;
+
+			Task.Run(() =>
+			{
+				// Thread khác.
+				foreach (string f in folder.files)
+					if (!token.IsCancellationRequested) Dispatcher.Invoke(() =>
+					{
+						if (!token.IsCancellationRequested) fileListBox.Items.Add(new ListBoxItem() { Content = Path.GetFileName(f), ToolTip = Path.GetDirectoryName(f) });
+					});
+					else return;
+			});
 		}
 
 
@@ -109,8 +138,10 @@ namespace MediaPlayer
 			var item = fileListBox.SelectedItem as ListBoxItem;
 			if (item?.IsMouseOver == true) Play();
 		}
+		#endregion
 
 
+		#region Ô TÌM KIẾM
 		private void TextBox_KeyDown(object sender, KeyEventArgs e)
 		{
 			if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt))
@@ -118,44 +149,49 @@ namespace MediaPlayer
 				var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false };
 				if (dialog.ShowDialog() == winform.DialogResult.OK)
 				{
-					Application.Current.Properties[App.ROOT_FOLDER_KEY] = dialog.SelectedPath;
+					Database.instance.Refresh(dialog.SelectedPath);
 					App.Restart();
 				}
 			}
-		}
-
-
-		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-		{
-			cancelSearching.Cancel();
-			cancelSearching = new CancellationTokenSource();
+			else if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.Space))
+			{
+				Database.instance.Refresh();
+				App.Restart();
+			}
+			else if (Keyboard.IsKeyDown(Key.Enter)) Task.Delay(1).ContinueWith((Task task) => Dispatcher.Invoke(fileListBox.Focus));
 		}
 
 
 		private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
 		{
 			e.Handled = true;
-			cancelSearching.Cancel();
-			cancelSearching = new CancellationTokenSource();
+			if (cancelSource?.IsCancellationRequested == false) { cancelSource.Cancel(); cancelSource = null; }
 			if (textBox.Text == "")
 			{
 				// Wait to restore content of the current selected folder.
+				if (cancelSource == null) cancelSource = new CancellationTokenSource();
 				((Action<CancellationToken>)(async (CancellationToken token) =>
-			   {
-				   await Task.Delay(500);
-				   if (!token.IsCancellationRequested) UpdateFileList();
-			   }))(cancelSearching.Token);
+				{
+					await Task.Delay(500);
+					if (!token.IsCancellationRequested) UpdateFileList();
+				}))(cancelSource.Token);
 				return;
 			}
 
-			Search(textBox.Text, cancelSearching.Token);
+			Search(textBox.Text);
 		}
 
 
-		private CancellationTokenSource cancelSearching = new CancellationTokenSource();
+		private CancellationTokenSource cancelSource;
 
-		private async void Search(string textToSearch, CancellationToken token)
+		/// <summary>
+		/// Gọi bằng GUI Thread. Dùng worker thread để tìm kiếm, có thể cancel.
+		/// </summary>
+		/// <param name="textToSearch"></param>
+		private async void Search(string textToSearch)
 		{
+			if (cancelSource == null) cancelSource = new CancellationTokenSource();
+			var token = cancelSource.Token;
 			await Task.Delay(500);
 			if (token.IsCancellationRequested) return;
 
@@ -169,20 +205,22 @@ namespace MediaPlayer
 			// ==================  Search Database  =================================
 			fileListBox.Items.Clear();
 			var task = Task.Run(() =>
-			  {
-				  Database.instance.Search(textToSearch,
-					  (string filePath, float percent) =>
-					  {
-						  Dispatcher.Invoke(() =>
-						  {
-							  if (!token.IsCancellationRequested)
-								  fileListBox.Items.Add(new ListBoxItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) });
-						  });
-					  }, token);
-			  });
+			{
+				Database.instance.Search(textToSearch,
+					(string filePath, float percent) =>
+					{
+						Dispatcher.Invoke(() =>
+						{
+							if (!token.IsCancellationRequested)
+								fileListBox.Items.Add(new ListBoxItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) });
+						});
+					}, token);
+			});
 		}
+		#endregion
 
 
+		#region ICON MICROPHONE
 		private Task listening;
 
 		private async void VoiceButton_Click(object sender, RoutedEventArgs e)
@@ -195,62 +233,23 @@ namespace MediaPlayer
 		}
 
 
-		#region MỞ WINDOWS MEDIA PLAYER
-		private Process wmplayer;
-		private readonly ProcessStartInfo info = new ProcessStartInfo()
+		private void VoiceButton_LostFocus(object sender, RoutedEventArgs e)
 		{
-			FileName = @"C:\Program Files\Windows Media Player\wmplayer.exe",
-			Arguments = "",
-			WindowStyle = ProcessWindowStyle.Maximized
-		};
+			Database.instance.CancelListening();
+		}
+		#endregion
+
 
 		private void Play()
 		{
-			void StartWMPlayer()
-			{
-				wmplayer = Process.Start(info);
-				wmplayer.EnableRaisingEvents = true;
-			}
-
 			var item = fileListBox.SelectedItem as ListBoxItem;
-			if (item != null)
-			{
-				string path = $@"{item.ToolTip}\{item.Content}";
-				info.Arguments = $"\"{path}\"";
-				if (wmplayer?.IsRunning() == true)
-				{
-					wmplayer.Exited += (object sender, EventArgs e) =>
-						Dispatcher.Invoke(() =>
-						{
-							StartWMPlayer();
-							IsEnabled = true;
-						});
-
-					IsEnabled = false;
-					wmplayer.CloseMainWindow();
-				}
-				else StartWMPlayer();
-			}
+			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\" /fullscreen");
 		}
-	}
-	#endregion
 
 
-
-}
-
-
-
-public static class ProcessExtension
-{
-	public static bool IsRunning(this Process process)
-	{
-		try
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
-			Process.GetProcessById(process.Id);
+			if (cancelSource?.IsCancellationRequested == false) { cancelSource.Cancel(); cancelSource = null; }
 		}
-		catch (Exception) { return false; }
-		return true;
 	}
-}
 }

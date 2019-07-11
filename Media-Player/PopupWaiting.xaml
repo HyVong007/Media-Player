@@ -1,18 +1,17 @@
-﻿<Window x:Class="MediaPlayer.PlayerWindow"
+﻿<Window x:Class="MediaPlayer.PopupWaiting"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MediaPlayer"
+		xmlns:gif="http://wpfanimatedgif.codeplex.com"
         mc:Ignorable="d"
-        Title="PlayerWindow" Height="450" Width="800"
-		Activated="Window_Activated"
-		Deactivated="Window_Deactivated"
-		WindowState="Maximized"
+        Title="PopupWaiting" Height="300" Width="300"
+		WindowStartupLocation="CenterScreen"
 		WindowStyle="None"
-		MouseDoubleClick="Window_MouseDoubleClick"
-		>
-
-	<MediaElement Name="player" Stretch="Fill" LoadedBehavior="Manual"/>
-
+		Closing="Window_Closing">
+	<Grid>
+		<Image gif:ImageBehavior.RepeatBehavior="1000000x"
+           gif:ImageBehavior.AnimatedSource="Images/waiting.gif" />
+	</Grid>
 </Window>

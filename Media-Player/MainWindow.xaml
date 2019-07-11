@@ -13,9 +13,10 @@
 		Background="{DynamicResource MaterialDesignPaper}"
 		FontFamily="{DynamicResource MaterialDesignFont}"
 		mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        Title="Tìm kiếm Video và Nhạc" Height="450" Width="800"
 		WindowStartupLocation="CenterScreen"
 		Closing="Window_Closing"
+		WindowState="Maximized"
 		>
 
 
@@ -47,6 +48,7 @@
 
 			<Button x:Name="voiceButton"
 				Click="VoiceButton_Click"
+				LostFocus="VoiceButton_LostFocus"
 				Visibility="Collapsed"
 				Grid.Column="2" ToolTip="Nói để tìm kiếm"
 				Height="Auto" Background="Transparent" Margin="0,0,0.333,0">
@@ -67,6 +69,7 @@
 				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Blue" FontSize="20">Thư Mục</TextBlock>
 				<TreeView DockPanel.Dock="Bottom"
 						  x:Name="folderTreeView"
+						  Focusable="False"
 						  SelectedItemChanged="FolderTreeView_SelectedItemChanged"
 						  Height="Auto"
 						  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -83,7 +86,6 @@
 				<ListBox x:Name="fileListBox" DockPanel.Dock="Bottom"
 						 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 						 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-						 SelectionChanged="FileListBox_SelectionChanged"
 						 KeyDown="FileListBox_KeyDown"
 						 MouseDoubleClick="FileListBox_MouseDoubleClick"
 						 ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -92,6 +94,5 @@
 
 			</DockPanel>
 		</Grid>
-
 	</Grid>
 </Window>

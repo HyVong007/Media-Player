@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Speech.Recognition;
-using System.Windows;
+using System.IO.IsolatedStorage;
 
 
 namespace MediaPlayer
@@ -13,23 +13,46 @@ namespace MediaPlayer
 	{
 		public static Database instance { get; private set; }
 
+		#region KHỞI TẠO
 		public Folder rootFolder;
-
-
-
 		private int totalFiles;
 
-		public Database(string rootFolderPath)
+		/// <summary>
+		/// Được gọi bằng thread khác main.
+		/// </summary>
+		public static event Action initializeCompleted;
+
+
+
+		public Database()
 		{
 			instance = this;
+			if (!Cache_To_Instance())
+				if (App.Current.Properties.Contains(App.PATH_KEY))
+				{
+					Path_To_Instance(App.Current.Properties[App.PATH_KEY] as string);
+					Instance_To_Cache();
+				}
+			initializeCompleted?.Invoke();
+		}
+
+
+		private void Path_To_Instance(string rootFolderPath)
+		{
 			var a = new List<Folder>() { (rootFolder = new Folder() { path = rootFolderPath }) };
 			var b = new List<Folder>();
 
+			var fileList = new List<string>();
 			do
 			{
 				foreach (var folder in a)
 				{
-					folder.files = Directory.GetFiles(folder.path);
+					fileList.Clear();
+					foreach (string filePath in Directory.GetFiles(folder.path))
+						if (IsMediaFile(filePath)) fileList.Add(filePath);
+
+					fileList.Sort();
+					folder.files = fileList.ToArray();
 					totalFiles += folder.files.Length;
 					string[] children = Directory.GetDirectories(folder.path);
 					folder.children = new Folder[children.Length];
@@ -39,19 +62,111 @@ namespace MediaPlayer
 				var t = a;
 				a = b; b = t; b.Clear();
 			} while (a.Count != 0);
-			voiceListener = new SpeechRecognitionEngine();
-			voiceListener.SetInputToDefaultAudioDevice();
-			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) => SpeechRecognized?.Invoke(e.Result.Text);
-			voiceListener.RecognizeCompleted += (object sender, RecognizeCompletedEventArgs e) =>
-			{
-				cancelListening.Cancel(); cancelListening = new CancellationTokenSource();
-			};
-			voiceListener.LoadGrammarCompleted += (object sender, LoadGrammarCompletedEventArgs e) => VoiceListenerInitialized?.Invoke();
-			Task.Run(InitializeVoiceSearch).ContinueWith((Task<Grammar> task) => voiceListener.LoadGrammarAsync(task.Result));
 		}
 
-		//  ==========================================================================
 
+		private const string CACHE_FILE = "CACHE.TXT";
+
+		/// <summary>
+		/// Main thread write file.
+		/// </summary>
+		private void Instance_To_Cache()
+		{
+			var storage = IsolatedStorageFile.GetUserStoreForDomain();
+			using (var stream = new IsolatedStorageFileStream(CACHE_FILE, FileMode.Create, storage))
+			using (var writer = new StreamWriter(stream))
+			{
+				var a = new List<Folder>() { rootFolder };
+				var b = new List<Folder>();
+				do
+				{
+					foreach (var folder in a)
+					{
+						writer.WriteLine(folder.path);
+						writer.WriteLine(folder.files.Length);
+						writer.WriteLine(folder.children.Length);
+						foreach (string file in folder.files) writer.WriteLine(file);
+						b.AddRange(folder.children);
+					}
+
+					var t = a; a = b; b = t; b.Clear();
+				} while (a.Count != 0);
+				writer.Flush();
+				writer.Close();
+			}
+		}
+
+
+		/// <summary>
+		/// Read file. Thread ???
+		/// <para>Return true: thành công, False: thất bại.</para>
+		/// </summary>
+		private bool Cache_To_Instance()
+		{
+			var storage = IsolatedStorageFile.GetUserStoreForDomain();
+			try
+			{
+				using (var stream = new IsolatedStorageFileStream(CACHE_FILE, FileMode.Open, storage))
+				using (var reader = new StreamReader(stream))
+				{
+					Folder CreateFolder()
+					{
+						var folder = new Folder()
+						{
+							path = reader.ReadLine(),
+							files = new string[Convert.ToInt32(reader.ReadLine())],
+							children = new Folder[Convert.ToInt32(reader.ReadLine())]
+						};
+						for (int i = 0; i < folder.files.Length; ++i) folder.files[i] = reader.ReadLine();
+						return folder;
+					}
+
+					var a = new List<Folder>() { (rootFolder = CreateFolder()) };
+					var b = new List<Folder>();
+					do
+					{
+						foreach (var folder in a)
+						{
+							for (int i = 0; i < folder.children.Length; (folder.children[i++] = CreateFolder()).parent = folder) ;
+							b.AddRange(folder.children);
+						}
+
+						var t = a; a = b; b = t; b.Clear();
+					} while (a.Count != 0);
+					reader.Close();
+				}
+			}
+			catch (FileNotFoundException) { return false; }
+			return true;
+		}
+
+
+		/// <summary>
+		/// Main Thread write file.
+		/// </summary>
+		public void Refresh(string rootFolderPath)
+		{
+			var storage = IsolatedStorageFile.GetUserStoreForDomain();
+			using (var stream = new IsolatedStorageFileStream(App.PATH_FILE, FileMode.Create, storage))
+			using (var writer = new StreamWriter(stream))
+			{
+				writer.WriteLine(App.Current.Properties[App.PATH_KEY] = rootFolderPath);
+				writer.Flush();
+				writer.Close();
+			}
+			Refresh();
+		}
+
+
+		public void Refresh()
+		{
+			Path_To_Instance(App.Current.Properties[App.PATH_KEY] as string);
+			Instance_To_Cache();
+		}
+		#endregion
+
+
+		#region TÌM KIẾM BẰNG GÕ CHỮ
 		private static readonly IReadOnlyDictionary<char, List<char>> VN_UNICODES = new Dictionary<char, List<char>>()
 		{
 			['A'] = new List<char>()
@@ -268,13 +383,23 @@ namespace MediaPlayer
 				}
 			}
 		}
+		#endregion
 
 
-
+		#region TÌM KIẾM BẰNG GIỌNG NÓI
 		private SpeechRecognitionEngine voiceListener;
 
-		private Grammar InitializeVoiceSearch()
+		private void InitializeVoiceSearch()
 		{
+			voiceListener = new SpeechRecognitionEngine();
+			voiceListener.SetInputToDefaultAudioDevice();
+			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) => SpeechRecognized?.Invoke(e.Result.Text);
+			voiceListener.RecognizeCompleted += (object sender, RecognizeCompletedEventArgs e) =>
+			{
+				cancelListening.Cancel(); cancelListening = new CancellationTokenSource();
+			};
+			//voiceListener.LoadGrammarCompleted += (object sender, LoadGrammarCompletedEventArgs e) => VoiceListenerInitialized?.Invoke();
+
 			var choices = new Choices();
 			var a = new List<Folder>() { rootFolder };
 			var b = new List<Folder>();
@@ -300,19 +425,32 @@ namespace MediaPlayer
 				var t = a; a = b; b = t; b.Clear();
 			} while (a.Count != 0);
 
+			/*choices = new Choices(new string[]
+			{
+				"tinh anh ban chieu", "nguoi dien yeu trang", "chuyen tau hoang hon", "pho dem",
+				"ao cuoi mau hoa ca", "long me", "me yeu", "huyen thoai me", "nuoc mat ben them",
+				"quan nua khuya", "nguoi di ngoai pho", "vo dong so bach thu ha"
+			});*/
+
+
+
+
 			var gb = new GrammarBuilder();
 			gb.Append(choices);
 			//gb.AppendDictation();
 			gb.AppendWildcard();
-			return new Grammar(gb);
+			voiceListener.LoadGrammar(new Grammar(gb));
+			VoiceListenerInitialized?.Invoke();
 		}
 
-
 		/// <summary>
-		/// Called by thread pool, NOT Main/GUI Thread.
+		/// Được gọi bằng thread khác main.
 		/// </summary>
 		public static event Action VoiceListenerInitialized;
 
+		/// <summary>
+		/// Thread ???
+		/// </summary>
 		public static event Action<string> SpeechRecognized;
 
 		private CancellationTokenSource cancelListening = new CancellationTokenSource();
@@ -323,6 +461,26 @@ namespace MediaPlayer
 			voiceListener.RecognizeAsync();
 			while (!token.IsCancellationRequested) { await Task.Delay(1); }
 		}
+
+
+		public void CancelListening()
+		{
+			voiceListener.RecognizeAsyncStop();
+			cancelListening.Cancel();
+			cancelListening = new CancellationTokenSource();
+		}
+		#endregion
+
+
+		#region LỌC FILE LÀ VIDEO/ SOUND
+		private static readonly List<string> MEDIA_EXTENSIONS = new List<string>()
+		{
+			".MP3", ".M4A", ".AAC", ".WAV", ".AMR", ".FLAC", ".MIDI", ".MID", ".MKA",
+			".MP4", ".MPG", ".WMV", ".WEBM", ".FLV", ".AVI", ".3GP", ".WMA"
+		};
+
+		private static bool IsMediaFile(string filePath) => MEDIA_EXTENSIONS.Contains(Path.GetExtension(filePath).ToUpper());
+		#endregion
 	}
 
 
