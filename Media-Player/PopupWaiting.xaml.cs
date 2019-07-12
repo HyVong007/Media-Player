@@ -25,14 +25,8 @@ namespace MediaPlayer
 
 		public PopupWaiting()
 		{
-			if (instance == null) instance = this; else throw new Exception();
+			instance = this;
 			InitializeComponent();
-		}
-
-
-		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-		{
-			instance = null;
 		}
 	}
 }

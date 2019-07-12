@@ -69,7 +69,7 @@
 				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Blue" FontSize="20">Thư Mục</TextBlock>
 				<TreeView DockPanel.Dock="Bottom"
 						  x:Name="folderTreeView"
-						  Focusable="False"
+						  FontSize="20" Margin="0, 6, 0, 6"
 						  SelectedItemChanged="FolderTreeView_SelectedItemChanged"
 						  Height="Auto"
 						  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -83,15 +83,17 @@
 			<!--File List Area-->
 			<DockPanel Grid.Column="2" LastChildFill="True">
 				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Green" FontSize="20" >Danh sách Tập Tin</TextBlock>
-				<ListBox x:Name="fileListBox" DockPanel.Dock="Bottom"
+				<ListView x:Name="fileList" DockPanel.Dock="Bottom"
+						 FontSize="20" Margin="0, 6, 0, 6"
 						 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-						 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-						 KeyDown="FileListBox_KeyDown"
-						 MouseDoubleClick="FileListBox_MouseDoubleClick"
+						 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
+						 KeyDown="FileList_KeyDown"
+						 MouseDoubleClick="FileList_MouseDoubleClick"
 						 ScrollViewer.VerticalScrollBarVisibility="Auto"
 						 ScrollViewer.HorizontalScrollBarVisibility="Auto"
-						 />
+						 >
 
+				</ListView>
 			</DockPanel>
 		</Grid>
 	</Grid>

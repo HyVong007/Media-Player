@@ -32,7 +32,7 @@ namespace MediaPlayer
 		public class FolderItem : TreeViewItem
 		{
 			public FolderItem parent;
-			public Folder folder;
+			public Database.Folder folder;
 		}
 
 
@@ -40,8 +40,7 @@ namespace MediaPlayer
 		{
 			instance = this;
 			InitializeComponent();
-			Database.VoiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
-			Database.SpeechRecognized += (string text) => MessageBox.Show(text);
+			Database.voiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
 			if (App.Current.Properties.Contains(App.PATH_KEY))
 			{
 				IsEnabled = false;
@@ -60,11 +59,11 @@ namespace MediaPlayer
 				var t = _obj1; _obj1 = _obj2; _obj2 = t;
 			}
 
-			var a = new List<Folder>() { Database.instance.rootFolder };
-			var b = new List<Folder>();
+			var a = new List<Database.Folder>() { Database.instance.rootFolder };
+			var b = new List<Database.Folder>();
 			var rootItem = new FolderItem() { Header = Path.GetFileName(a[0].path), folder = a[0] };
-			var dictA = new Dictionary<Folder, FolderItem>() { [a[0]] = rootItem };
-			var dictB = new Dictionary<Folder, FolderItem>();
+			var dictA = new Dictionary<Database.Folder, FolderItem>() { [a[0]] = rootItem };
+			var dictB = new Dictionary<Database.Folder, FolderItem>();
 
 			do
 			{
@@ -108,7 +107,7 @@ namespace MediaPlayer
 			if (cancelSource?.IsCancellationRequested == false) cancelSource.Cancel();
 			cancelSource = new CancellationTokenSource();
 			var token = cancelSource.Token;
-			fileListBox.Items.Clear();
+			fileList.Items.Clear();
 			var folder = (folderTreeView.SelectedItem as FolderItem)?.folder;
 			if (folder == null) return;
 
@@ -118,24 +117,24 @@ namespace MediaPlayer
 				foreach (string f in folder.files)
 					if (!token.IsCancellationRequested) Dispatcher.Invoke(() =>
 					{
-						if (!token.IsCancellationRequested) fileListBox.Items.Add(new ListBoxItem() { Content = Path.GetFileName(f), ToolTip = Path.GetDirectoryName(f) });
+						if (!token.IsCancellationRequested) fileList.Items.Add(new ListViewItem() { Content = Path.GetFileName(f), ToolTip = Path.GetDirectoryName(f) });
 					});
 					else return;
 			});
 		}
 
 
-		private void FileListBox_KeyDown(object sender, KeyEventArgs e)
+		private void FileList_KeyDown(object sender, KeyEventArgs e)
 		{
 			e.Handled = true;
 			if (Keyboard.IsKeyDown(Key.Enter)) Play();
 		}
 
 
-		private void FileListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+		private void FileList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
 		{
 			e.Handled = true;
-			var item = fileListBox.SelectedItem as ListBoxItem;
+			var item = fileList.SelectedItem as ListBoxItem;
 			if (item?.IsMouseOver == true) Play();
 		}
 		#endregion
@@ -158,18 +157,18 @@ namespace MediaPlayer
 				Database.instance.Refresh();
 				App.Restart();
 			}
-			else if (Keyboard.IsKeyDown(Key.Enter)) Task.Delay(1).ContinueWith((Task task) => Dispatcher.Invoke(fileListBox.Focus));
+			else if (Keyboard.IsKeyDown(Key.Enter)) Task.Delay(1).ContinueWith((Task task) => Dispatcher.Invoke(fileList.Focus));
 		}
 
 
 		private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
 		{
 			e.Handled = true;
-			if (cancelSource?.IsCancellationRequested == false) { cancelSource.Cancel(); cancelSource = null; }
+			cancelSource.Cancel();
+			cancelSource = new CancellationTokenSource();
 			if (textBox.Text == "")
 			{
 				// Wait to restore content of the current selected folder.
-				if (cancelSource == null) cancelSource = new CancellationTokenSource();
 				((Action<CancellationToken>)(async (CancellationToken token) =>
 				{
 					await Task.Delay(500);
@@ -182,7 +181,7 @@ namespace MediaPlayer
 		}
 
 
-		private CancellationTokenSource cancelSource;
+		private CancellationTokenSource cancelSource = new CancellationTokenSource();
 
 		/// <summary>
 		/// Gọi bằng GUI Thread. Dùng worker thread để tìm kiếm, có thể cancel.
@@ -190,7 +189,6 @@ namespace MediaPlayer
 		/// <param name="textToSearch"></param>
 		private async void Search(string textToSearch)
 		{
-			if (cancelSource == null) cancelSource = new CancellationTokenSource();
 			var token = cancelSource.Token;
 			await Task.Delay(500);
 			if (token.IsCancellationRequested) return;
@@ -203,7 +201,7 @@ namespace MediaPlayer
 			}
 
 			// ==================  Search Database  =================================
-			fileListBox.Items.Clear();
+			fileList.Items.Clear();
 			var task = Task.Run(() =>
 			{
 				Database.instance.Search(textToSearch,
@@ -211,8 +209,7 @@ namespace MediaPlayer
 					{
 						Dispatcher.Invoke(() =>
 						{
-							if (!token.IsCancellationRequested)
-								fileListBox.Items.Add(new ListBoxItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) });
+							if (!token.IsCancellationRequested) fileList.Items.Add(new ListViewItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) });
 						});
 					}, token);
 			});
@@ -221,35 +218,45 @@ namespace MediaPlayer
 
 
 		#region ICON MICROPHONE
-		private Task listening;
+		private Task<string> listening;
+		private CancellationTokenSource cancelListening = new CancellationTokenSource();
 
 		private async void VoiceButton_Click(object sender, RoutedEventArgs e)
 		{
 			if (listening?.IsCompleted == false) return;
+
 			var oldBrush = voiceButton.Background;
 			voiceButton.Background = new SolidColorBrush(Color.FromRgb(0, 255, 0));
-			await (listening = Database.instance.Listen());
+			string result = await (listening = Database.instance.Listen(cancelListening.Token));
 			voiceButton.Background = oldBrush;
+			if (result != "") textBox.Text = result;
 		}
 
 
 		private void VoiceButton_LostFocus(object sender, RoutedEventArgs e)
 		{
-			Database.instance.CancelListening();
+			if (listening != null)
+			{
+				if (!listening.IsCompleted)
+				{
+					cancelListening.Cancel(); cancelListening = new CancellationTokenSource();
+				}
+				listening = null;
+			}
 		}
 		#endregion
 
 
 		private void Play()
 		{
-			var item = fileListBox.SelectedItem as ListBoxItem;
+			var item = fileList.SelectedItem as ListBoxItem;
 			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\" /fullscreen");
 		}
 
 
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
-			if (cancelSource?.IsCancellationRequested == false) { cancelSource.Cancel(); cancelSource = null; }
+			cancelSource.Cancel(); cancelListening.Cancel();
 		}
 	}
 }

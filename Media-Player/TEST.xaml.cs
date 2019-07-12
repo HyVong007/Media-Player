@@ -12,9 +12,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Diagnostics;
+using System.Collections.ObjectModel;
 
 
-namespace Media_Player
+namespace MediaPlayer
 {
 	/// <summary>
 	/// Interaction logic for TEST.xaml
@@ -24,45 +25,7 @@ namespace Media_Player
 		public TEST()
 		{
 			InitializeComponent();
-		}
-
-
-		private void Button_Click(object sender, RoutedEventArgs e)
-		{
-			/*var cmd = new Process();
-			cmd.StartInfo.FileName = "cmd";
-			cmd.StartInfo.UseShellExecute = false;
-			cmd.StartInfo.RedirectStandardInput = true;
-			cmd.StartInfo.RedirectStandardOutput = true;
-			cmd.StartInfo.WorkingDirectory = @"C:\Program Files\Windows Media Player";
-			cmd.Start();
-
-
-			string arg = @"E:\Ai kho vi ai.mp3";
-			cmd.StandardInput.WriteLine($".\\wmplayer.exe \"{arg}\"");
-			cmd.StandardInput.Flush();
-
-
-
-
-
-
-
-
-
-
-			MessageBox.Show(cmd.StandardOutput.ReadToEnd());*/
-
-
-
-
-
-
-
-
-
-			string arg = @"E:\Ai kho vi ai.mp3";
-			Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{arg}\"");
+			
 		}
 	}
 }

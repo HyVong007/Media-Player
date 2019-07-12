@@ -9,7 +9,7 @@
         Title="PopupWaiting" Height="300" Width="300"
 		WindowStartupLocation="CenterScreen"
 		WindowStyle="None"
-		Closing="Window_Closing">
+		>
 	<Grid>
 		<Image gif:ImageBehavior.RepeatBehavior="1000000x"
            gif:ImageBehavior.AnimatedSource="Images/waiting.gif" />

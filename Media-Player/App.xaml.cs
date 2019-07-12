@@ -33,6 +33,7 @@ namespace MediaPlayer
 				}
 			}
 			catch (FileNotFoundException) { }
+			finally { storage.Close(); }
 		}
 
 

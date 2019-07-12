@@ -11,13 +11,22 @@ namespace MediaPlayer
 {
 	public sealed class Database
 	{
+		public sealed class Folder
+		{
+			public string path;
+			public string[] files;
+			public Folder[] children;
+			public Folder parent;
+		}
+
 		public static Database instance { get; private set; }
 
-		#region KHỞI TẠO
+		#region KHỞI TẠO DATABASE VÀ NHẬN DẠNG GIỌNG NÓI
 		public Folder rootFolder;
 		private int totalFiles;
 
 		/// <summary>
+		/// Khởi tạo database đã xong (Chưa khởi tạo nhận dạng giọng nói).
 		/// Được gọi bằng thread khác main.
 		/// </summary>
 		public static event Action initializeCompleted;
@@ -94,6 +103,7 @@ namespace MediaPlayer
 				writer.Flush();
 				writer.Close();
 			}
+			storage.Close();
 		}
 
 
@@ -136,7 +146,8 @@ namespace MediaPlayer
 					reader.Close();
 				}
 			}
-			catch (FileNotFoundException) { return false; }
+			catch (Exception) { return false; }
+			finally { storage.Close(); }
 			return true;
 		}
 
@@ -154,6 +165,7 @@ namespace MediaPlayer
 				writer.Flush();
 				writer.Close();
 			}
+			storage.Close();
 			Refresh();
 		}
 
@@ -163,6 +175,17 @@ namespace MediaPlayer
 			Path_To_Instance(App.Current.Properties[App.PATH_KEY] as string);
 			Instance_To_Cache();
 		}
+		#endregion
+
+
+		#region LỌC FILE LÀ VIDEO/ SOUND
+		private static readonly List<string> MEDIA_EXTENSIONS = new List<string>()
+		{
+			".MP3", ".M4A", ".AAC", ".WAV", ".AMR", ".FLAC", ".MIDI", ".MID", ".MKA",
+			".MP4", ".MPG", ".WMV", ".WEBM", ".FLV", ".AVI", ".3GP", ".WMA"
+		};
+
+		private static bool IsMediaFile(string filePath) => MEDIA_EXTENSIONS.Contains(Path.GetExtension(filePath).ToUpper());
 		#endregion
 
 
@@ -386,18 +409,15 @@ namespace MediaPlayer
 		#endregion
 
 
-		#region TÌM KIẾM BẰNG GIỌNG NÓI
+		#region CHUYỂN GIỌNG NÓI RA CHỮ
 		private SpeechRecognitionEngine voiceListener;
 
 		private void InitializeVoiceSearch()
 		{
 			voiceListener = new SpeechRecognitionEngine();
 			voiceListener.SetInputToDefaultAudioDevice();
-			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) => SpeechRecognized?.Invoke(e.Result.Text);
-			voiceListener.RecognizeCompleted += (object sender, RecognizeCompletedEventArgs e) =>
-			{
-				cancelListening.Cancel(); cancelListening = new CancellationTokenSource();
-			};
+			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) => result = e.Result.Text;
+			voiceListener.RecognizeCompleted += (object sender, RecognizeCompletedEventArgs e) => recognizeCompleted = true;
 			//voiceListener.LoadGrammarCompleted += (object sender, LoadGrammarCompletedEventArgs e) => VoiceListenerInitialized?.Invoke();
 
 			var choices = new Choices();
@@ -440,56 +460,30 @@ namespace MediaPlayer
 			//gb.AppendDictation();
 			gb.AppendWildcard();
 			voiceListener.LoadGrammar(new Grammar(gb));
-			VoiceListenerInitialized?.Invoke();
+			voiceListenerInitialized?.Invoke();
 		}
 
 		/// <summary>
 		/// Được gọi bằng thread khác main.
 		/// </summary>
-		public static event Action VoiceListenerInitialized;
+		public static event Action voiceListenerInitialized;
 
-		/// <summary>
-		/// Thread ???
-		/// </summary>
-		public static event Action<string> SpeechRecognized;
+		private string result;
+		private bool recognizeCompleted;
 
-		private CancellationTokenSource cancelListening = new CancellationTokenSource();
-
-		public async Task Listen()
+		public async Task<string> Listen(CancellationToken token = default)
 		{
-			var token = cancelListening.Token;
+			result = ""; recognizeCompleted = false;
 			voiceListener.RecognizeAsync();
-			while (!token.IsCancellationRequested) { await Task.Delay(1); }
-		}
+			while (!recognizeCompleted && !token.IsCancellationRequested) await Task.Delay(1);
 
-
-		public void CancelListening()
-		{
-			voiceListener.RecognizeAsyncStop();
-			cancelListening.Cancel();
-			cancelListening = new CancellationTokenSource();
+			if (token.IsCancellationRequested)
+			{
+				result = "";
+				if (!recognizeCompleted) voiceListener.RecognizeAsyncCancel();
+			}
+			return result;
 		}
 		#endregion
-
-
-		#region LỌC FILE LÀ VIDEO/ SOUND
-		private static readonly List<string> MEDIA_EXTENSIONS = new List<string>()
-		{
-			".MP3", ".M4A", ".AAC", ".WAV", ".AMR", ".FLAC", ".MIDI", ".MID", ".MKA",
-			".MP4", ".MPG", ".WMV", ".WEBM", ".FLV", ".AVI", ".3GP", ".WMA"
-		};
-
-		private static bool IsMediaFile(string filePath) => MEDIA_EXTENSIONS.Contains(Path.GetExtension(filePath).ToUpper());
-		#endregion
-	}
-
-
-
-	public sealed class Folder
-	{
-		public string path;
-		public string[] files;
-		public Folder[] children;
-		public Folder parent;
 	}
 }
