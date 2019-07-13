@@ -17,15 +17,26 @@ using System.Collections.ObjectModel;
 
 namespace MediaPlayer
 {
-	/// <summary>
-	/// Interaction logic for TEST.xaml
-	/// </summary>
 	public partial class TEST : Window
 	{
+
+		private readonly ListViewItem[] source = new ListViewItem[]
+		{
+			new ListViewItem(){Content="Haha"},
+			new ListViewItem(){Content="Keke"}
+		};
+
 		public TEST()
 		{
 			InitializeComponent();
-			
+			listView.Items.Add(new ListViewItem() { Content = "nguyen thanh tam" });
+			listView.ItemsSource = source;
+		}
+
+
+		private void Button_Click(object sender, RoutedEventArgs e)
+		{
+			//listView.ItemsSource = null;
 		}
 	}
 }

@@ -74,7 +74,13 @@
 						  Height="Auto"
 						  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 						  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-						  />
+						  >
+					<TreeView.Resources>
+						<Style TargetType="{x:Type local:FolderItem}">
+							<Setter Property="IsExpanded" Value="True"/>
+						</Style>
+					</TreeView.Resources>
+				</TreeView>
 			</DockPanel>
 
 			<!--Border between Folder and File Tree-->

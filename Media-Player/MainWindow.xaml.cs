@@ -29,12 +29,6 @@ namespace MediaPlayer
 			});
 		}
 
-		public class FolderItem : TreeViewItem
-		{
-			public FolderItem parent;
-			public Database.Folder folder;
-		}
-
 
 		public MainWindow()
 		{
@@ -46,7 +40,7 @@ namespace MediaPlayer
 				IsEnabled = false;
 				new PopupWaiting().Show();
 			}
-			new Database();
+			Task.Delay(1).ContinueWith((Task task) => new Database());
 		}
 		#endregion
 
@@ -83,7 +77,7 @@ namespace MediaPlayer
 				Swap(ref dictA, ref dictB); dictB.Clear();
 			} while (a.Count != 0);
 
-			folderTreeView.Items.Clear();
+			folderTreeView.Clear();
 			folderTreeView.Items.Add(rootItem);
 			rootItem.IsSelected = true;
 		}
@@ -99,28 +93,25 @@ namespace MediaPlayer
 
 
 		#region FILE LIST
-		/// <summary>
-		/// Gọi bằng GUI Thread, dùng worker Thread để duyệt file. Có thể cancel.
-		/// </summary>
+		private readonly Dictionary<FolderItem, ListViewItem[]> folder_file_dict = new Dictionary<FolderItem, ListViewItem[]>();
+
 		private void UpdateFileList()
 		{
-			if (cancelSource?.IsCancellationRequested == false) cancelSource.Cancel();
-			cancelSource = new CancellationTokenSource();
-			var token = cancelSource.Token;
-			fileList.Items.Clear();
-			var folder = (folderTreeView.SelectedItem as FolderItem)?.folder;
-			if (folder == null) return;
-
-			Task.Run(() =>
+			fileList.Clear();
+			var folderItem = folderTreeView.SelectedItem as FolderItem;
+			if (folderItem == null) return;
+			if (folder_file_dict.ContainsKey(folderItem)) fileList.ItemsSource = folder_file_dict[folderItem];
+			else
 			{
-				// Thread khác.
-				foreach (string f in folder.files)
-					if (!token.IsCancellationRequested) Dispatcher.Invoke(() =>
-					{
-						if (!token.IsCancellationRequested) fileList.Items.Add(new ListViewItem() { Content = Path.GetFileName(f), ToolTip = Path.GetDirectoryName(f) });
-					});
-					else return;
-			});
+				var files = folderItem.folder.files;
+				var source = new ListViewItem[files.Length];
+				for (int i = 0; i < files.Length; ++i)
+				{
+					string filePath = files[i];
+					source[i] = new ListViewItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) };
+				}
+				fileList.ItemsSource = folder_file_dict[folderItem] = source;
+			}
 		}
 
 
@@ -201,7 +192,7 @@ namespace MediaPlayer
 			}
 
 			// ==================  Search Database  =================================
-			fileList.Items.Clear();
+			fileList.Clear();
 			var task = Task.Run(() =>
 			{
 				Database.instance.Search(textToSearch,
@@ -257,6 +248,25 @@ namespace MediaPlayer
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			cancelSource.Cancel(); cancelListening.Cancel();
+		}
+	}
+
+
+
+	public class FolderItem : TreeViewItem
+	{
+		public FolderItem parent;
+		public Database.Folder folder;
+	}
+
+
+
+	public static class Extension
+	{
+		public static void Clear(this ItemsControl itemsControl)
+		{
+			if (itemsControl.ItemsSource != null) itemsControl.ItemsSource = null;
+			if (itemsControl.Items.Count != 0) itemsControl.Items.Clear();
 		}
 	}
 }

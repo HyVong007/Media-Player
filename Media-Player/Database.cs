@@ -182,7 +182,7 @@ namespace MediaPlayer
 		private static readonly List<string> MEDIA_EXTENSIONS = new List<string>()
 		{
 			".MP3", ".M4A", ".AAC", ".WAV", ".AMR", ".FLAC", ".MIDI", ".MID", ".MKA",
-			".MP4", ".MPG", ".WMV", ".WEBM", ".FLV", ".AVI", ".3GP", ".WMA"
+			".MP4", ".MPG", ".WMV", ".WEBM", ".FLV", ".AVI", ".3GP", ".WMA", ".MKV", ".MOV"
 		};
 
 		private static bool IsMediaFile(string filePath) => MEDIA_EXTENSIONS.Contains(Path.GetExtension(filePath).ToUpper());
@@ -270,10 +270,11 @@ namespace MediaPlayer
 			{
 				foreach (var folder in a)
 				{
-					foreach (string filePath in folder.files)
+					for (int i = 0; i < folder.files.Length; ++i)
 					{
 						if (token.IsCancellationRequested) return result;
 						++fileScanned;
+						string filePath = folder.files[i];
 						string fileName = Path.GetFileNameWithoutExtension(filePath);
 
 						if (SourceIsResult(ToWords(fileName), keyList))
@@ -282,7 +283,7 @@ namespace MediaPlayer
 							foundResult?.Invoke(filePath, (float)fileScanned / totalFiles);
 						}
 					}
-					foreach (var childFolder in folder.children) b.Add(childFolder);
+					b.AddRange(folder.children);
 				}
 
 				var t = a; a = b; b = t; b.Clear();
@@ -316,9 +317,10 @@ namespace MediaPlayer
 			{
 				foreach (var folder in a)
 				{
-					foreach (string filePath in folder.files)
+					for (int i = 0; i < folder.files.Length; ++i)
 					{
 						if (token.IsCancellationRequested) return result;
+						string filePath = folder.files[i];
 						++fileScanned;
 						string fileName = Path.GetFileNameWithoutExtension(filePath);
 						ConvertToCompact(ref fileName);
@@ -329,7 +331,7 @@ namespace MediaPlayer
 							foundResult?.Invoke(filePath, (float)fileScanned / totalFiles);
 						}
 					}
-					foreach (var childFolder in folder.children) b.Add(childFolder);
+					b.AddRange(folder.children);
 				}
 
 				var t = a; a = b; b = t; b.Clear();
