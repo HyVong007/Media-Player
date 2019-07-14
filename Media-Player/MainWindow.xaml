@@ -112,7 +112,7 @@
 			</DockPanel>
 
 			<!--Border between Folder and File Tree-->
-			<GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="10" Background="Black"/>
+			<GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="10" Background="Green"/>
 
 			<!--File List Area-->
 			<DockPanel Grid.Column="2" LastChildFill="True">
@@ -136,6 +136,9 @@
 									<Setter Property="IsSelected" Value="True"/>
 									<Setter Property="FocusManager.FocusedElement" Value="{Binding RelativeSource={RelativeSource Self}}"/>
 								</Trigger>
+								<Trigger Property="IsSelected" Value="True">
+									<Setter Property="Foreground" Value="Red"/>
+								</Trigger>
 							</Style.Triggers>
 						</Style>
 					</ListView.ItemContainerStyle>
@@ -155,8 +158,8 @@
 							</Style.Triggers>
 						</Style>
 					</ListView.Resources>
-					
-					
+
+
 				</ListView>
 			</DockPanel>
 		</Grid>

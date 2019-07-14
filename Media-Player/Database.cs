@@ -40,8 +40,11 @@ namespace MediaPlayer
 			instance = this;
 			if (!Cache_To_Instance())
 				if (rootFolderPath != "")
-					try { Path_To_Instance(rootFolderPath); Instance_To_Cache(); }
+				{
+					try { Path_To_Instance(rootFolderPath); }
 					catch (Exception) { rootFolder = null; }
+					if (rootFolder != null) Instance_To_Cache();
+				}
 
 			initializeCompleted?.Invoke();
 		}
@@ -161,8 +164,9 @@ namespace MediaPlayer
 		public bool Refresh(string rootFolderPath)
 		{
 			var backup = rootFolder;
-			try { Path_To_Instance(rootFolderPath); Instance_To_Cache(); }
+			try { Path_To_Instance(rootFolderPath); }
 			catch (Exception) { rootFolder = backup; return false; }
+			Instance_To_Cache();
 			return true;
 		}
 		#endregion

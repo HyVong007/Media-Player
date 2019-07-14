@@ -3,6 +3,8 @@ using System.Windows;
 using System.IO;
 using System.IO.IsolatedStorage;
 using System.Diagnostics;
+using System.Collections.Specialized;
+using System.Collections;
 
 
 namespace MediaPlayer
@@ -17,7 +19,7 @@ namespace MediaPlayer
 		{
 			Database.initializeCompleted += () =>
 			{
-				if (Database.instance.rootFolder == null) if (Current.Properties.Contains(PATH_KEY)) Current.Properties.Remove(PATH_KEY);
+				if (Database.instance.rootFolder == null) Current.Properties[PATH_KEY] = "";
 				new MainWindow().Show();
 			};
 		}
@@ -26,6 +28,7 @@ namespace MediaPlayer
 		public App()
 		{
 			InitializeComponent();
+			originalProperties[PATH_KEY] = Properties[PATH_KEY] = "";
 		}
 
 
@@ -41,7 +44,7 @@ namespace MediaPlayer
 				using (var stream = new IsolatedStorageFileStream(PATH_FILE, FileMode.Open, storage))
 				using (var reader = new StreamReader(stream))
 				{
-					Properties[PATH_KEY] = reader.ReadLine();
+					originalProperties[PATH_KEY] = Properties[PATH_KEY] = reader.ReadLine();
 					reader.Close();
 				}
 			}
@@ -50,13 +53,15 @@ namespace MediaPlayer
 
 			// Khởi tạo database
 			new PopupWaiting().Show();
-			PopupWaiting.instance.ContentRendered += (object _sender, EventArgs _e) => new Database(Properties.Contains(PATH_KEY) ? Properties[PATH_KEY] as string : "");
+			PopupWaiting.instance.ContentRendered += (object _sender, EventArgs _e) => new Database(Properties[PATH_KEY] as string);
 		}
 
 
+		private readonly IDictionary originalProperties = new HybridDictionary();
+
 		private void Application_Exit(object sender, ExitEventArgs e)
 		{
-			if (Properties.Contains(PATH_KEY))
+			if (originalProperties[PATH_KEY] != Properties[PATH_KEY])
 			{
 				var storage = IsolatedStorageFile.GetUserStoreForDomain();
 				using (var stream = new IsolatedStorageFileStream(PATH_FILE, FileMode.Create, storage))

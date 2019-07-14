@@ -292,15 +292,6 @@ namespace MediaPlayer
 		}
 
 
-		public static T[] GetSourceCollection<T>(this ItemsControl itemsControl) where T : ContentControl
-		{
-			if (itemsControl.ItemsSource != null) return itemsControl.ItemsSource as T[];
-			var result = new T[itemsControl.Items.Count];
-			itemsControl.Items.CopyTo(result, 0);
-			return result;
-		}
-
-
 		public static T GetChild<T>(this Visual element) where T : Visual
 		{
 			if (element == null) return null;

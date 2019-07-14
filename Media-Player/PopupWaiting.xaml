@@ -16,7 +16,21 @@
 		Closing="Window_Closing"
 		>
 	<Grid>
-		<Image gif:ImageBehavior.RepeatBehavior="1000000x"
-           gif:ImageBehavior.AnimatedSource="Images/waiting.gif" />
+		<Grid.RowDefinitions>
+			<RowDefinition Height="31*"/>
+			<RowDefinition Height="69*"/>
+		</Grid.RowDefinitions>
+
+
+		<Viewbox Stretch="Uniform">
+			<TextBlock Foreground="Red" Background="Aquamarine"
+				HorizontalAlignment="Stretch" Width="80" TextWrapping="Wrap">
+				ĐANG TẢI DỮ LIỆU...</TextBlock>
+		</Viewbox>
+
+
+
+		<Image Grid.Row="1" gif:ImageBehavior.RepeatBehavior="1000000x"
+           gif:ImageBehavior.AnimatedSource="Images/waiting.gif" Grid.RowSpan="2" />
 	</Grid>
 </Window>
