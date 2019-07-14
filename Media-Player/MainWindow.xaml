@@ -13,21 +13,21 @@
 		Background="{DynamicResource MaterialDesignPaper}"
 		FontFamily="{DynamicResource MaterialDesignFont}"
 		mc:Ignorable="d"
-        Title="Tìm kiếm Video và Nhạc" Height="450" Width="800"
-		WindowStartupLocation="CenterScreen"
+        Title="Tìm kiếm Video và Nhạc" Height="800" Width="800"
 		Closing="Window_Closing"
-		WindowState="Maximized"
+		WindowStyle="None"
+		ResizeMode="NoResize"
 		>
 
 
 	<Grid>
 		<Grid.RowDefinitions>
-			<RowDefinition Height="56*"/>
-			<RowDefinition Height="365*"/>
+			<RowDefinition Height="107*"/>
+			<RowDefinition Height="693*"/>
 		</Grid.RowDefinitions>
 
 		<!--Search Box and Microphone Icon-->
-		<Grid Grid.Row="0">
+		<Grid Grid.Row="0" Margin="0,0,0,0.667">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="81*"/>
 				<ColumnDefinition Width="589*"/>
@@ -36,14 +36,21 @@
 
 			<Image Grid.Column="0" Source="images/search.png"/>
 
-			<TextBox x:Name="textBox"
-				Grid.Column="1" FontSize="30"
-				m:HintAssist.Hint="Tìm kiếm..." 
+			<TextBox x:Name="searchBox"
+				Grid.Column="1" FontSize="40"
+				BorderBrush="Navy"
+				BorderThickness="0.5"
+				Foreground="Red"
+				VerticalAlignment="Stretch"
+				VerticalContentAlignment="Stretch"
+				m:HintAssist.Hint="Tìm kiếm...(Cập nhật: Đè A + B)"
 				m:HintAssist.IsFloating="True"
-				m:HintAssist.Foreground="Blue"
+				m:HintAssist.Foreground="GreenYellow"
 				m:HintAssist.FloatingScale="0.5"
 				KeyDown="TextBox_KeyDown"
 				TextChanged="TextBox_TextChanged"
+				GotFocus="SearchBox_GotFocus"
+				LostFocus="SearchBox_LostFocus"
 				ToolTip="Tên bài hát không phân biệt: HOA/thường, có dấu/không dấu, kí tự đặc biệt. Các từ cách nhau bởi khoảng trắng."/>
 
 			<Button x:Name="voiceButton"
@@ -57,7 +64,7 @@
 		</Grid>
 
 		<!--Folder Tree and File List Area-->
-		<Grid Grid.Row="1" Margin="0,0,0.333,-0.333">
+		<Grid Grid.Row="1" Margin="0,0.333,0,0">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="206*" MinWidth="100"/>
 				<ColumnDefinition Width="8*"/>
@@ -69,15 +76,18 @@
 				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Blue" FontSize="20">Thư Mục</TextBlock>
 				<TreeView DockPanel.Dock="Bottom"
 						  x:Name="folderTreeView"
-						  FontSize="20" Margin="0, 6, 0, 6"
+						  FontSize="30" Margin="0, 6, 0, 6"
 						  SelectedItemChanged="FolderTreeView_SelectedItemChanged"
 						  Height="Auto"
 						  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 						  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
 						  >
+
+
 					<TreeView.Resources>
 						<Style TargetType="{x:Type local:FolderItem}">
 							<Setter Property="IsExpanded" Value="True"/>
+							<Setter Property="Foreground" Value="Blue"/>
 						</Style>
 					</TreeView.Resources>
 				</TreeView>
@@ -90,15 +100,26 @@
 			<DockPanel Grid.Column="2" LastChildFill="True">
 				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Green" FontSize="20" >Danh sách Tập Tin</TextBlock>
 				<ListView x:Name="fileList" DockPanel.Dock="Bottom"
-						 FontSize="20" Margin="0, 6, 0, 6"
+						 Margin="0, 6, 0, 6" FontSize="40"
+						 SelectionMode="Single"
 						 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 						 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
 						 KeyDown="FileList_KeyDown"
 						 MouseDoubleClick="FileList_MouseDoubleClick"
 						 ScrollViewer.VerticalScrollBarVisibility="Auto"
 						 ScrollViewer.HorizontalScrollBarVisibility="Auto"
-						 >
+						  >
 
+					<ListView.ItemContainerStyle>
+						<Style TargetType="{x:Type ListViewItem}">
+							<Style.Triggers>
+								<Trigger Property="IsMouseOver" Value="True">
+									<Setter Property="IsSelected" Value="True"/>
+									<Setter Property="FocusManager.FocusedElement" Value="{Binding RelativeSource={RelativeSource Self}}"/>
+								</Trigger>
+							</Style.Triggers>
+						</Style>
+					</ListView.ItemContainerStyle>
 				</ListView>
 			</DockPanel>
 		</Grid>

@@ -1,26 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+﻿using System.Windows;
 
 
 namespace MediaPlayer
 {
-	/// <summary>
-	/// Interaction logic for PopupWaiting.xaml
-	/// </summary>
 	public partial class PopupWaiting : Window
 	{
 		public static PopupWaiting instance { get; private set; }
+		private bool manualClose;
+
+
+
+		static PopupWaiting()
+		{
+			Database.initializeCompleted += () =>
+			 {
+				 instance.manualClose = true; instance.Close();
+			 };
+		}
 
 
 		public PopupWaiting()
@@ -28,5 +24,8 @@ namespace MediaPlayer
 			instance = this;
 			InitializeComponent();
 		}
+
+
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => e.Cancel = !manualClose;
 	}
 }

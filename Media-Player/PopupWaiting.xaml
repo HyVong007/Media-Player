@@ -9,6 +9,11 @@
         Title="PopupWaiting" Height="300" Width="300"
 		WindowStartupLocation="CenterScreen"
 		WindowStyle="None"
+		IsEnabled="False"
+		Topmost="True"
+		ResizeMode="NoResize"
+		ShowInTaskbar="False"
+		Closing="Window_Closing"
 		>
 	<Grid>
 		<Image gif:ImageBehavior.RepeatBehavior="1000000x"

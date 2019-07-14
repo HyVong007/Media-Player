@@ -15,32 +15,32 @@ namespace MediaPlayer
 {
 	public partial class MainWindow : Window
 	{
-		private static MainWindow instance;
-
 		#region KHỞI TẠO
-		static MainWindow()
+		public MainWindow()
 		{
-			Database.initializeCompleted += () => instance.Dispatcher.Invoke(() =>
-			{
-				if (Database.instance.rootFolder == null) return;
-				instance.UpdateFolderTree();
-				PopupWaiting.instance.Close();
-				instance.IsEnabled = true;
-			});
+			InitializeComponent();
+			Width = SystemParameters.WorkArea.Width;
+			Height = SystemParameters.WorkArea.Height;
+			Left = 0;
+			Top = 0;
+			Database.instance.voiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
+			if (Database.instance.rootFolder != null) UpdateFolderTree();
+			else while (!RefreshDatabase()) ;
 		}
 
 
-		public MainWindow()
+		private bool RefreshDatabase()
 		{
-			instance = this;
-			InitializeComponent();
-			Database.voiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
-			if (App.Current.Properties.Contains(App.PATH_KEY))
+			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.Current.Properties.Contains(App.PATH_KEY) ? App.Current.Properties[App.PATH_KEY] as string : "" };
+			if (dialog.ShowDialog() == winform.DialogResult.OK)
 			{
-				IsEnabled = false;
-				new PopupWaiting().Show();
+				Database.instance.Refresh(dialog.SelectedPath);
+				manualClose = true;
+				winform.Application.Restart();
+				App.Current.Shutdown();
+				return true;
 			}
-			Task.Delay(1).ContinueWith((Task task) => new Database());
+			return false;
 		}
 		#endregion
 
@@ -86,7 +86,7 @@ namespace MediaPlayer
 		private void FolderTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
 		{
 			e.Handled = true;
-			if (textBox.Text != "") textBox.Text = "";
+			if (searchBox.Text != "") searchBox.Text = "";
 			else UpdateFileList();
 		}
 		#endregion
@@ -125,8 +125,7 @@ namespace MediaPlayer
 		private void FileList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
 		{
 			e.Handled = true;
-			var item = fileList.SelectedItem as ListBoxItem;
-			if (item?.IsMouseOver == true) Play();
+			if ((fileList.SelectedItem as ListBoxItem)?.IsMouseOver == true) Play();
 		}
 		#endregion
 
@@ -134,21 +133,8 @@ namespace MediaPlayer
 		#region Ô TÌM KIẾM
 		private void TextBox_KeyDown(object sender, KeyEventArgs e)
 		{
-			if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt))
-			{
-				var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false };
-				if (dialog.ShowDialog() == winform.DialogResult.OK)
-				{
-					Database.instance.Refresh(dialog.SelectedPath);
-					App.Restart();
-				}
-			}
-			else if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.Space))
-			{
-				Database.instance.Refresh();
-				App.Restart();
-			}
-			else if (Keyboard.IsKeyDown(Key.Enter)) Task.Delay(1).ContinueWith((Task task) => Dispatcher.Invoke(fileList.Focus));
+			if (Keyboard.IsKeyDown(Key.Enter)) fileList.Focus();
+			else if (Keyboard.IsKeyDown(Key.A) && Keyboard.IsKeyDown(Key.B)) RefreshDatabase();
 		}
 
 
@@ -157,7 +143,7 @@ namespace MediaPlayer
 			e.Handled = true;
 			cancelSource.Cancel();
 			cancelSource = new CancellationTokenSource();
-			if (textBox.Text == "")
+			if (searchBox.Text == "")
 			{
 				// Wait to restore content of the current selected folder.
 				((Action<CancellationToken>)(async (CancellationToken token) =>
@@ -168,7 +154,7 @@ namespace MediaPlayer
 				return;
 			}
 
-			Search(textBox.Text);
+			Search(searchBox.Text);
 		}
 
 
@@ -186,8 +172,8 @@ namespace MediaPlayer
 
 			if (!Database.IsValidKeyword(textToSearch))
 			{
-				textBox.Text = Database.CreateKeyword(textToSearch);
-				textBox.CaretIndex = textBox.Text.Length;
+				searchBox.Text = Database.CreateKeyword(textToSearch);
+				searchBox.CaretIndex = searchBox.Text.Length;
 				return;
 			}
 
@@ -205,6 +191,20 @@ namespace MediaPlayer
 					}, token);
 			});
 		}
+
+
+		private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+		{
+			e.Handled = true;
+			searchBox.Background = new SolidColorBrush(Colors.Green);
+		}
+
+
+		private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+		{
+			e.Handled = true;
+			searchBox.Background = new SolidColorBrush(Colors.White);
+		}
 		#endregion
 
 
@@ -220,7 +220,7 @@ namespace MediaPlayer
 			voiceButton.Background = new SolidColorBrush(Color.FromRgb(0, 255, 0));
 			string result = await (listening = Database.instance.Listen(cancelListening.Token));
 			voiceButton.Background = oldBrush;
-			if (result != "") textBox.Text = result;
+			if (result != "") searchBox.Text = result;
 		}
 
 
@@ -241,12 +241,15 @@ namespace MediaPlayer
 		private void Play()
 		{
 			var item = fileList.SelectedItem as ListBoxItem;
-			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\" /fullscreen");
+			if (item != null) Process.Start(@"C:\Program Files\VideoLAN\VLC\vlc.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\" --play-and-exit -f");
 		}
 
 
+		private bool manualClose;
+
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
+			if (e.Cancel = !manualClose) return;
 			cancelSource.Cancel(); cancelListening.Cancel();
 		}
 	}
@@ -267,6 +270,15 @@ namespace MediaPlayer
 		{
 			if (itemsControl.ItemsSource != null) itemsControl.ItemsSource = null;
 			if (itemsControl.Items.Count != 0) itemsControl.Items.Clear();
+		}
+
+
+		public static T[] GetSourceCollection<T>(this ItemsControl itemsControl) where T : ContentControl
+		{
+			if (itemsControl.ItemsSource != null) return itemsControl.ItemsSource as T[];
+			var result = new T[itemsControl.Items.Count];
+			itemsControl.Items.CopyTo(result, 0);
+			return result;
 		}
 	}
 }

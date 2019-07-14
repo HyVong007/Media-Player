@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.IsolatedStorage;
 using System.Diagnostics;
 using System.Reflection;
-using System.Threading.Tasks;
 
 
 namespace MediaPlayer
@@ -12,6 +11,13 @@ namespace MediaPlayer
 	public partial class App : Application
 	{
 		public const string PATH_KEY = "PATH", PATH_FILE = "PATH.TXT";
+
+
+
+		static App()
+		{
+			Database.initializeCompleted += () => new MainWindow().Show();
+		}
 
 
 		public App()
@@ -22,6 +28,10 @@ namespace MediaPlayer
 
 		private void Application_Startup(object sender, StartupEventArgs e)
 		{
+			// Chỉ cho phép 1 process chạy.
+			if (Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName).Length > 1) { Shutdown(); return; }
+
+			// Load path
 			var storage = IsolatedStorageFile.GetUserStoreForDomain();
 			try
 			{
@@ -32,23 +42,18 @@ namespace MediaPlayer
 					reader.Close();
 				}
 			}
-			catch (FileNotFoundException) { }
+			catch (Exception) { }
 			finally { storage.Close(); }
+
+			// Khởi tạo database
+			new PopupWaiting().Show();
+			PopupWaiting.instance.ContentRendered += (object _sender, EventArgs _e) => new Database();
 		}
 
 
 		private void Application_Exit(object sender, ExitEventArgs e)
 		{
-			if (restart) Process.Start(Assembly.GetEntryAssembly().Location);
-		}
 
-
-		private static bool restart;
-
-		public static void Restart()
-		{
-			restart = true;
-			Current.Shutdown();
 		}
 	}
 }

@@ -468,7 +468,7 @@ namespace MediaPlayer
 		/// <summary>
 		/// Được gọi bằng thread khác main.
 		/// </summary>
-		public static event Action voiceListenerInitialized;
+		public event Action voiceListenerInitialized;
 
 		private string result;
 		private bool recognizeCompleted;
