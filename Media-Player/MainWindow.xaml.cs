@@ -9,6 +9,7 @@ using winform = System.Windows.Forms;
 using System;
 using System.Windows.Media;
 using System.Diagnostics;
+using System.Windows.Controls.Primitives;
 
 
 namespace MediaPlayer
@@ -19,6 +20,7 @@ namespace MediaPlayer
 		public MainWindow()
 		{
 			InitializeComponent();
+			fileList_ScrollViewer = fileList.GetChild<ScrollViewer>();
 			Width = SystemParameters.WorkArea.Width;
 			Height = SystemParameters.WorkArea.Height;
 			Left = 0;
@@ -34,7 +36,12 @@ namespace MediaPlayer
 			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.Current.Properties.Contains(App.PATH_KEY) ? App.Current.Properties[App.PATH_KEY] as string : "" };
 			if (dialog.ShowDialog() == winform.DialogResult.OK)
 			{
-				Database.instance.Refresh(dialog.SelectedPath);
+				if (!Database.instance.Refresh(dialog.SelectedPath))
+				{
+					MessageBox.Show("Xảy ra lỗi ! Không có permission để truy cập thư mục !");
+					return false;
+				}
+				App.Current.Properties[App.PATH_KEY] = dialog.SelectedPath;
 				manualClose = true;
 				winform.Application.Restart();
 				App.Current.Shutdown();
@@ -93,6 +100,7 @@ namespace MediaPlayer
 
 
 		#region FILE LIST
+		private ScrollViewer fileList_ScrollViewer;
 		private readonly Dictionary<FolderItem, ListViewItem[]> folder_file_dict = new Dictionary<FolderItem, ListViewItem[]>();
 
 		private void UpdateFileList()
@@ -112,6 +120,7 @@ namespace MediaPlayer
 				}
 				fileList.ItemsSource = folder_file_dict[folderItem] = source;
 			}
+			fileList_ScrollViewer.ScrollToLeftEnd();
 		}
 
 
@@ -126,6 +135,12 @@ namespace MediaPlayer
 		{
 			e.Handled = true;
 			if ((fileList.SelectedItem as ListBoxItem)?.IsMouseOver == true) Play();
+		}
+
+
+		private void FileList_MouseEnter(object sender, MouseEventArgs e)
+		{
+			if (!fileList.IsFocused) fileList.Focus();
 		}
 		#endregion
 
@@ -186,7 +201,11 @@ namespace MediaPlayer
 					{
 						Dispatcher.Invoke(() =>
 						{
-							if (!token.IsCancellationRequested) fileList.Items.Add(new ListViewItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) });
+							if (!token.IsCancellationRequested)
+							{
+								fileList.Items.Add(new ListViewItem() { Content = Path.GetFileName(filePath), ToolTip = Path.GetDirectoryName(filePath) });
+								fileList_ScrollViewer.ScrollToLeftEnd();
+							}
 						});
 					}, token);
 			});
@@ -241,7 +260,7 @@ namespace MediaPlayer
 		private void Play()
 		{
 			var item = fileList.SelectedItem as ListBoxItem;
-			if (item != null) Process.Start(@"C:\Program Files\VideoLAN\VLC\vlc.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\" --play-and-exit -f");
+			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\"  /fullscreen");
 		}
 
 
@@ -279,6 +298,23 @@ namespace MediaPlayer
 			var result = new T[itemsControl.Items.Count];
 			itemsControl.Items.CopyTo(result, 0);
 			return result;
+		}
+
+
+		public static T GetChild<T>(this Visual element) where T : Visual
+		{
+			if (element == null) return null;
+			var type = typeof(T);
+			if (element.GetType() == type) return element as T;
+			Visual foundElement = null;
+			if (element is FrameworkElement) (element as FrameworkElement).ApplyTemplate();
+			for (int i = VisualTreeHelper.GetChildrenCount(element) - 1; i >= 0; --i)
+			{
+				var visual = VisualTreeHelper.GetChild(element, i) as Visual;
+				foundElement = GetChild<T>(visual);
+				if (foundElement != null) break;
+			}
+			return foundElement as T;
 		}
 	}
 }

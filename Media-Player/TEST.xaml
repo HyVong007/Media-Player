@@ -8,12 +8,10 @@
         Title="TEST" Height="450" Width="800"
 		WindowStartupLocation="CenterScreen">
 	<Grid>
-		<Grid.RowDefinitions>
-			<RowDefinition Height="350*"/>
-			<RowDefinition Height="71*"/>
-		</Grid.RowDefinitions>
-		<ListView Grid.Row="0" Name="listView" Margin="0,0,0.333,-0.333" Grid.RowSpan="2"/>
-
-		<Button Grid.Row="1" Click="Button_Click"/>
+		<ListView x:Name="listView">
+			<ListViewItem>A</ListViewItem>
+			<ListViewItem>B</ListViewItem>
+			<ListViewItem>C</ListViewItem>
+		</ListView>
 	</Grid>
 </Window>

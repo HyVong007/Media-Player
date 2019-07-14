@@ -3,20 +3,23 @@ using System.Windows;
 using System.IO;
 using System.IO.IsolatedStorage;
 using System.Diagnostics;
-using System.Reflection;
 
 
 namespace MediaPlayer
 {
 	public partial class App : Application
 	{
-		public const string PATH_KEY = "PATH", PATH_FILE = "PATH.TXT";
+		internal const string PATH_KEY = "PATH", PATH_FILE = "PATH.TXT";
 
 
 
 		static App()
 		{
-			Database.initializeCompleted += () => new MainWindow().Show();
+			Database.initializeCompleted += () =>
+			{
+				if (Database.instance.rootFolder == null) if (Current.Properties.Contains(PATH_KEY)) Current.Properties.Remove(PATH_KEY);
+				new MainWindow().Show();
+			};
 		}
 
 
@@ -47,13 +50,24 @@ namespace MediaPlayer
 
 			// Khởi tạo database
 			new PopupWaiting().Show();
-			PopupWaiting.instance.ContentRendered += (object _sender, EventArgs _e) => new Database();
+			PopupWaiting.instance.ContentRendered += (object _sender, EventArgs _e) => new Database(Properties.Contains(PATH_KEY) ? Properties[PATH_KEY] as string : "");
 		}
 
 
 		private void Application_Exit(object sender, ExitEventArgs e)
 		{
-
+			if (Properties.Contains(PATH_KEY))
+			{
+				var storage = IsolatedStorageFile.GetUserStoreForDomain();
+				using (var stream = new IsolatedStorageFileStream(PATH_FILE, FileMode.Create, storage))
+				using (var writer = new StreamWriter(stream))
+				{
+					writer.WriteLine(Properties[PATH_KEY]);
+					writer.Flush();
+					writer.Close();
+				}
+				storage.Close();
+			}
 		}
 	}
 }

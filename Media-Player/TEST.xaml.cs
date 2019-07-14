@@ -19,24 +19,39 @@ namespace MediaPlayer
 {
 	public partial class TEST : Window
 	{
-
-		private readonly ListViewItem[] source = new ListViewItem[]
-		{
-			new ListViewItem(){Content="Haha"},
-			new ListViewItem(){Content="Keke"}
-		};
-
 		public TEST()
 		{
 			InitializeComponent();
-			listView.Items.Add(new ListViewItem() { Content = "nguyen thanh tam" });
-			listView.ItemsSource = source;
+			MessageBox.Show(GetDescendantByType<ScrollViewer>(listView)?.ToString());
 		}
 
 
-		private void Button_Click(object sender, RoutedEventArgs e)
+		public static T GetDescendantByType<T>(Visual element) where T : Visual
 		{
-			//listView.ItemsSource = null;
+			if (element == null)
+			{
+				return null;
+			}
+			var type = typeof(T);
+			if (element.GetType() == type)
+			{
+				return element as T;
+			}
+			Visual foundElement = null;
+			if (element is FrameworkElement)
+			{
+				(element as FrameworkElement).ApplyTemplate();
+			}
+			for (int i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
+			{
+				Visual visual = VisualTreeHelper.GetChild(element, i) as Visual;
+				foundElement = GetDescendantByType<T>(visual);
+				if (foundElement != null)
+				{
+					break;
+				}
+			}
+			return foundElement as T;
 		}
 	}
 }

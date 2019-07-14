@@ -83,18 +83,36 @@
 						  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
 						  >
 
-
 					<TreeView.Resources>
 						<Style TargetType="{x:Type local:FolderItem}">
 							<Setter Property="IsExpanded" Value="True"/>
 							<Setter Property="Foreground" Value="Blue"/>
+							<Style.Triggers>
+								<Trigger Property="IsSelected" Value="True">
+									<Setter Property="Foreground" Value="Red"/>
+								</Trigger>
+							</Style.Triggers>
+						</Style>
+
+						<Style TargetType="{x:Type ScrollBar}">
+							<Setter Property="Background" Value="Gold"/>
+							<Style.Triggers>
+								<Trigger Property="Orientation" Value="Horizontal">
+									<Setter Property="Height" Value="20" />
+									<Setter Property="MinHeight" Value="20" />
+								</Trigger>
+								<Trigger Property="Orientation" Value="Vertical">
+									<Setter Property="Width" Value="20" />
+									<Setter Property="MinWidth" Value="20" />
+								</Trigger>
+							</Style.Triggers>
 						</Style>
 					</TreeView.Resources>
 				</TreeView>
 			</DockPanel>
 
 			<!--Border between Folder and File Tree-->
-			<GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"/>
+			<GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="10" Background="Black"/>
 
 			<!--File List Area-->
 			<DockPanel Grid.Column="2" LastChildFill="True">
@@ -108,7 +126,8 @@
 						 MouseDoubleClick="FileList_MouseDoubleClick"
 						 ScrollViewer.VerticalScrollBarVisibility="Auto"
 						 ScrollViewer.HorizontalScrollBarVisibility="Auto"
-						  >
+						 MouseEnter="FileList_MouseEnter"
+						 >
 
 					<ListView.ItemContainerStyle>
 						<Style TargetType="{x:Type ListViewItem}">
@@ -120,6 +139,24 @@
 							</Style.Triggers>
 						</Style>
 					</ListView.ItemContainerStyle>
+
+					<ListView.Resources>
+						<Style TargetType="{x:Type ScrollBar}">
+							<Setter Property="Background" Value="Gold"/>
+							<Style.Triggers>
+								<Trigger Property="Orientation" Value="Horizontal">
+									<Setter Property="Height" Value="20" />
+									<Setter Property="MinHeight" Value="20" />
+								</Trigger>
+								<Trigger Property="Orientation" Value="Vertical">
+									<Setter Property="Width" Value="20" />
+									<Setter Property="MinWidth" Value="20" />
+								</Trigger>
+							</Style.Triggers>
+						</Style>
+					</ListView.Resources>
+					
+					
 				</ListView>
 			</DockPanel>
 		</Grid>

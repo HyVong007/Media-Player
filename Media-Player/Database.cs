@@ -32,20 +32,22 @@ namespace MediaPlayer
 		public static event Action initializeCompleted;
 
 
-
-		public Database()
+		/// <summary>
+		///  Nếu có dữ liệu: rootFolder !=null.
+		/// </summary>
+		public Database(string rootFolderPath)
 		{
 			instance = this;
 			if (!Cache_To_Instance())
-				if (App.Current.Properties.Contains(App.PATH_KEY))
-				{
-					Path_To_Instance(App.Current.Properties[App.PATH_KEY] as string);
-					Instance_To_Cache();
-				}
+				if (rootFolderPath != "")
+					try { Path_To_Instance(rootFolderPath); Instance_To_Cache(); }
+					catch (Exception) { rootFolder = null; }
+
 			initializeCompleted?.Invoke();
 		}
 
 
+		/// <exception cref="UnauthorizedAccessException"/>
 		private void Path_To_Instance(string rootFolderPath)
 		{
 			var a = new List<Folder>() { (rootFolder = new Folder() { path = rootFolderPath }) };
@@ -154,26 +156,14 @@ namespace MediaPlayer
 
 		/// <summary>
 		/// Main Thread write file.
+		/// Return: True is successful.
 		/// </summary>
-		public void Refresh(string rootFolderPath)
+		public bool Refresh(string rootFolderPath)
 		{
-			var storage = IsolatedStorageFile.GetUserStoreForDomain();
-			using (var stream = new IsolatedStorageFileStream(App.PATH_FILE, FileMode.Create, storage))
-			using (var writer = new StreamWriter(stream))
-			{
-				writer.WriteLine(App.Current.Properties[App.PATH_KEY] = rootFolderPath);
-				writer.Flush();
-				writer.Close();
-			}
-			storage.Close();
-			Refresh();
-		}
-
-
-		public void Refresh()
-		{
-			Path_To_Instance(App.Current.Properties[App.PATH_KEY] as string);
-			Instance_To_Cache();
+			var backup = rootFolder;
+			try { Path_To_Instance(rootFolderPath); Instance_To_Cache(); }
+			catch (Exception) { rootFolder = backup; return false; }
+			return true;
 		}
 		#endregion
 
