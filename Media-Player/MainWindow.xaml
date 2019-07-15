@@ -17,6 +17,7 @@
 		Closing="Window_Closing"
 		WindowStyle="None"
 		ResizeMode="NoResize"
+		KeyDown="Window_KeyDown"
 		>
 
 
@@ -126,8 +127,7 @@
 						 MouseDoubleClick="FileList_MouseDoubleClick"
 						 ScrollViewer.VerticalScrollBarVisibility="Auto"
 						 ScrollViewer.HorizontalScrollBarVisibility="Auto"
-						 MouseEnter="FileList_MouseEnter"
-						 >
+						  >
 
 					<ListView.ItemContainerStyle>
 						<Style TargetType="{x:Type ListViewItem}">
@@ -145,15 +145,15 @@
 
 					<ListView.Resources>
 						<Style TargetType="{x:Type ScrollBar}">
-							<Setter Property="Background" Value="Gold"/>
+							<Setter Property="Background" Value="YellowGreen"/>
 							<Style.Triggers>
 								<Trigger Property="Orientation" Value="Horizontal">
-									<Setter Property="Height" Value="20" />
-									<Setter Property="MinHeight" Value="20" />
+									<Setter Property="Height" Value="30" />
+									<Setter Property="MinHeight" Value="30" />
 								</Trigger>
 								<Trigger Property="Orientation" Value="Vertical">
-									<Setter Property="Width" Value="20" />
-									<Setter Property="MinWidth" Value="20" />
+									<Setter Property="Width" Value="30" />
+									<Setter Property="MinWidth" Value="30" />
 								</Trigger>
 							</Style.Triggers>
 						</Style>

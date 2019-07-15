@@ -10,6 +10,8 @@ using System;
 using System.Windows.Media;
 using System.Diagnostics;
 using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
+using System.Collections.ObjectModel;
 
 
 namespace MediaPlayer
@@ -21,6 +23,7 @@ namespace MediaPlayer
 		{
 			InitializeComponent();
 			fileList_ScrollViewer = fileList.GetChild<ScrollViewer>();
+			fileList.Items.CurrentChanged += (object sender, EventArgs e) => lastIndex = -1;
 			Width = SystemParameters.WorkArea.Width;
 			Height = SystemParameters.WorkArea.Height;
 			Left = 0;
@@ -33,7 +36,7 @@ namespace MediaPlayer
 
 		private bool RefreshDatabase()
 		{
-			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.Current.Properties.Contains(App.PATH_KEY) ? App.Current.Properties[App.PATH_KEY] as string : "" };
+			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.Current.Properties[App.PATH_KEY] as string };
 			if (dialog.ShowDialog() == winform.DialogResult.OK)
 			{
 				if (!Database.instance.Refresh(dialog.SelectedPath))
@@ -124,10 +127,34 @@ namespace MediaPlayer
 		}
 
 
+
+		private int lastIndex = -1;
+
 		private void FileList_KeyDown(object sender, KeyEventArgs e)
 		{
-			e.Handled = true;
-			if (Keyboard.IsKeyDown(Key.Enter)) Play();
+			if (Keyboard.IsKeyDown(Key.Enter)) { Play(); return; }
+
+			// Cuộn đến item có content chứa kí tự vừa nhập
+			char c = default;
+			if (Key.A <= e.Key && e.Key <= Key.Z) c = e.Key.ToString()[0];
+			else if (Key.D0 <= e.Key && e.Key <= Key.D9) c = e.Key.ToString()[1];
+			else if (Key.NumPad0 <= e.Key && e.Key <= Key.NumPad9) c = e.Key.ToString()[6];
+			else return;
+
+			for (int i = lastIndex + 1; i < fileList.Items.Count; ++i)
+			{
+				var item = fileList.Items[i] as ListViewItem;
+				string text = item.Content as string;
+				foreach (char c2 in text) if (c2 == c)
+					{
+						fileList.ScrollIntoView(item);
+						item.Focus();
+						item.IsSelected = true;
+						lastIndex = i;
+						return;
+					}
+			}
+			lastIndex = -1;
 		}
 
 
@@ -136,12 +163,6 @@ namespace MediaPlayer
 			e.Handled = true;
 			if ((fileList.SelectedItem as ListBoxItem)?.IsMouseOver == true) Play();
 		}
-
-
-		private void FileList_MouseEnter(object sender, MouseEventArgs e)
-		{
-			if (!fileList.IsFocused) fileList.Focus();
-		}
 		#endregion
 
 
@@ -149,7 +170,6 @@ namespace MediaPlayer
 		private void TextBox_KeyDown(object sender, KeyEventArgs e)
 		{
 			if (Keyboard.IsKeyDown(Key.Enter)) fileList.Focus();
-			else if (Keyboard.IsKeyDown(Key.A) && Keyboard.IsKeyDown(Key.B)) RefreshDatabase();
 		}
 
 
@@ -257,13 +277,7 @@ namespace MediaPlayer
 		#endregion
 
 
-		private void Play()
-		{
-			var item = fileList.SelectedItem as ListBoxItem;
-			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\"  /fullscreen");
-		}
-
-
+		#region WINDOW EVENT
 		private bool manualClose;
 
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -271,6 +285,20 @@ namespace MediaPlayer
 			if (e.Cancel = !manualClose) return;
 			cancelSource.Cancel(); cancelListening.Cancel();
 		}
+
+		private void Window_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (Keyboard.IsKeyDown(Key.A) && Keyboard.IsKeyDown(Key.B)) RefreshDatabase();
+		}
+		#endregion
+
+
+		private void Play()
+		{
+			var item = fileList.SelectedItem as ListBoxItem;
+			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\"  /fullscreen");
+		}
+
 	}
 
 
