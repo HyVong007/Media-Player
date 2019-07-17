@@ -15,6 +15,7 @@ using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading;
+using System.IO.IsolatedStorage;
 
 
 namespace MediaPlayer
@@ -27,9 +28,29 @@ namespace MediaPlayer
 		}
 
 
+		const string FILE = "TAM.TXT";
+
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
+			using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
+			using (var stream = new IsolatedStorageFileStream(FILE, FileMode.Create, storage))
+			{
+				stream.Close();
 
+				MessageBox.Show(storage.FileExists(FILE).ToString());
+				storage.Close();
+			}
+		}
+
+
+		private void Button_Click_1(object sender, RoutedEventArgs e)
+		{
+			using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
+			{
+				storage.DeleteFile(FILE);
+				MessageBox.Show(storage.FileExists(FILE).ToString());
+				storage.Close();
+			}
 		}
 	}
 }

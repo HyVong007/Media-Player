@@ -14,7 +14,6 @@ namespace MediaPlayer
 		public static App instance { get; private set; }
 
 		private const string PATH_FILE = "PATH.TXT";
-
 		private string _path;
 		public string path
 		{
@@ -38,6 +37,7 @@ namespace MediaPlayer
 
 			set
 			{
+				if (_path == value) return;
 				_path = value ?? throw new Exception();
 				var storage = IsolatedStorageFile.GetUserStoreForDomain();
 				using (var stream = new IsolatedStorageFileStream(PATH_FILE, FileMode.Create, storage))
@@ -51,11 +51,49 @@ namespace MediaPlayer
 			}
 		}
 
+		private const string OKSTATE_FILE = "OKSTATE.TXT";
+		private bool? _okState;
+
+		/// <summary>
+		/// Trạng thái dữ liệu hiện tại/lần chạy trước đó có toàn vẹn hay không ?
+		/// <para>True là toàn vẹn.</para>
+		/// </summary>
+		public bool okState
+		{
+			get
+			{
+				if (_okState != null) return _okState.Value;
+				using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
+				{
+					_okState = storage.FileExists(OKSTATE_FILE);
+					storage.Close();
+				}
+				return _okState.Value;
+			}
+
+			set
+			{
+				if (_okState == value) return;
+				_okState = value;
+				using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
+				{
+					if (value)
+					{
+						if (!storage.FileExists(OKSTATE_FILE)) using (var stream = new IsolatedStorageFileStream(OKSTATE_FILE, FileMode.Create, storage)) stream.Close();
+					}
+					else if (storage.FileExists(OKSTATE_FILE)) storage.DeleteFile(OKSTATE_FILE);
+					storage.Close();
+				}
+			}
+		}
+
+
 
 		static App()
 		{
 			Database.initializeCompleted += () =>
 			{
+				instance.okState = true;
 				PopupWaiting.instance.Close();
 				if (Database.instance.rootFolder == null) { instance.path = ""; Watcher.instance?.Dispose(); }
 				else new Watcher();
@@ -122,6 +160,7 @@ namespace MediaPlayer
 				queue.Enqueue(WatcherChangeTypes.All);
 				App.Current.Dispatcher.Invoke(() =>
 				{
+					App.instance.okState = false;
 					if (MediaPlayer.MainWindow.instance?.IsActive == true) App.instance.CheckReset();
 				});
 			}
@@ -132,6 +171,7 @@ namespace MediaPlayer
 				queue.Enqueue(WatcherChangeTypes.Renamed);
 				App.Current.Dispatcher.Invoke(() =>
 				{
+					App.instance.okState = false;
 					if (MediaPlayer.MainWindow.instance?.IsActive == true) App.instance.CheckReset();
 				});
 			}
@@ -142,6 +182,7 @@ namespace MediaPlayer
 				queue.Enqueue(WatcherChangeTypes.Changed);
 				App.Current.Dispatcher.Invoke(() =>
 				{
+					App.instance.okState = false;
 					if (MediaPlayer.MainWindow.instance?.IsActive == true) App.instance.CheckReset();
 				});
 			}
@@ -152,6 +193,7 @@ namespace MediaPlayer
 				queue.Enqueue(WatcherChangeTypes.Deleted);
 				App.Current.Dispatcher.Invoke(() =>
 				{
+					App.instance.okState = false;
 					if (MediaPlayer.MainWindow.instance?.IsActive == true) App.instance.CheckReset();
 				});
 			}
@@ -162,6 +204,7 @@ namespace MediaPlayer
 				queue.Enqueue(WatcherChangeTypes.Created);
 				App.Current.Dispatcher.Invoke(() =>
 				{
+					App.instance.okState = false;
 					if (MediaPlayer.MainWindow.instance?.IsActive == true) App.instance.CheckReset();
 				});
 			}
@@ -180,6 +223,7 @@ namespace MediaPlayer
 				MediaPlayer.MainWindow.instance.Close();
 				new PopupWaiting().Show();
 				if (!Database.instance.Refresh(path)) throw new Exception();
+				okState = true;
 				PopupWaiting.instance.Close();
 				new MainWindow().Show();
 				return true;
@@ -195,13 +239,18 @@ namespace MediaPlayer
 
 			// Khởi tạo database
 			new PopupWaiting().Show();
-			PopupWaiting.instance.ContentRendered += (object _sender, EventArgs _e) => new Database(path);
+			PopupWaiting.instance.ContentRendered += (object _sender, EventArgs _e) => new Database(path, !okState);
 		}
 
 
 		private void Application_Exit(object sender, ExitEventArgs e)
 		{
 			Watcher.instance?.Dispose();
+			if (!okState)
+			{
+				Database.instance.Refresh(path);
+				okState = true;
+			}
 		}
 	}
 }

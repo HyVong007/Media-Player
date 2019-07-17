@@ -35,17 +35,18 @@ namespace MediaPlayer
 		/// <summary>
 		///  Nếu có dữ liệu: rootFolder !=null.
 		/// </summary>
-		public Database(string rootFolderPath)
+		public Database(string rootFolderPath, bool update)
 		{
 			instance = this;
-			if (!Cache_To_Instance())
-				if (rootFolderPath != "")
-				{
-					try { Path_To_Instance(rootFolderPath); }
-					catch (Exception) { rootFolder = null; }
-					if (rootFolder != null) Instance_To_Cache();
-				}
+			if (!update && Cache_To_Instance()) goto COMPLETED;
+			if (rootFolderPath != "")
+			{
+				try { Path_To_Instance(rootFolderPath); }
+				catch (Exception) { rootFolder = null; }
+				if (rootFolder != null) Instance_To_Cache();
+			}
 
+		COMPLETED:
 			initializeCompleted?.Invoke();
 		}
 

@@ -50,6 +50,7 @@ namespace MediaPlayer
 					return false;
 				}
 				App.instance.path = dialog.SelectedPath;
+				App.instance.okState = true;
 				App.Watcher.instance?.Dispose();
 				new App.Watcher();
 				Close();
