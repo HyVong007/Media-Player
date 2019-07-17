@@ -18,6 +18,8 @@
 		WindowStyle="None"
 		ResizeMode="NoResize"
 		KeyDown="Window_KeyDown"
+		ShowActivated="True"
+		Activated="Window_Activated"
 		>
 
 
@@ -44,7 +46,7 @@
 				Foreground="Red"
 				VerticalAlignment="Stretch"
 				VerticalContentAlignment="Stretch"
-				m:HintAssist.Hint="Tìm kiếm...(Cập nhật: Đè A + B)"
+				m:HintAssist.Hint="Tìm kiếm... OK/Enter để tìm Youtube"
 				m:HintAssist.IsFloating="True"
 				m:HintAssist.Foreground="GreenYellow"
 				m:HintAssist.FloatingScale="0.5"
@@ -52,7 +54,7 @@
 				TextChanged="TextBox_TextChanged"
 				GotFocus="SearchBox_GotFocus"
 				LostFocus="SearchBox_LostFocus"
-				ToolTip="Tên bài hát không phân biệt: HOA/thường, có dấu/không dấu, kí tự đặc biệt. Các từ cách nhau bởi khoảng trắng."/>
+				ToolTip="Tên bài hát không phân biệt: HOA/thường, có dấu/không dấu, kí tự đặc biệt. Các từ cách nhau bởi khoảng trắng." Grid.ColumnSpan="2" Margin="0,0,73,0"/>
 
 			<Button x:Name="voiceButton"
 				Click="VoiceButton_Click"
@@ -74,7 +76,7 @@
 
 			<!--Folder Tree Area-->
 			<DockPanel Grid.Column="0" LastChildFill="True">
-				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Blue" FontSize="20">Thư Mục</TextBlock>
+				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Violet" FontSize="30">Thư Mục</TextBlock>
 				<TreeView DockPanel.Dock="Bottom"
 						  x:Name="folderTreeView"
 						  FontSize="30" Margin="0, 6, 0, 6"
@@ -117,7 +119,7 @@
 
 			<!--File List Area-->
 			<DockPanel Grid.Column="2" LastChildFill="True">
-				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Green" FontSize="20" >Danh sách Tập Tin</TextBlock>
+				<TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" Foreground="Violet" FontSize="30" >Danh sách Tập Tin</TextBlock>
 				<ListView x:Name="fileList" DockPanel.Dock="Bottom"
 						 Margin="0, 6, 0, 6" FontSize="40"
 						 SelectionMode="Single"

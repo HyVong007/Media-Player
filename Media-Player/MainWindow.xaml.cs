@@ -9,18 +9,21 @@ using winform = System.Windows.Forms;
 using System;
 using System.Windows.Media;
 using System.Diagnostics;
-using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
-using System.Collections.ObjectModel;
 
 
 namespace MediaPlayer
 {
 	public partial class MainWindow : Window
 	{
+		public static MainWindow instance { get; private set; }
+
+
+
 		#region KHỞI TẠO
 		public MainWindow()
 		{
+			if (instance == null) instance = this; else throw new Exception();
 			InitializeComponent();
 			fileList_ScrollViewer = fileList.GetChild<ScrollViewer>();
 			fileList.Items.CurrentChanged += (object sender, EventArgs e) => lastIndex = -1;
@@ -29,28 +32,65 @@ namespace MediaPlayer
 			Left = 0;
 			Top = 0;
 			Database.instance.voiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
-			if (Database.instance.rootFolder != null) UpdateFolderTree();
-			else while (!RefreshDatabase()) ;
 		}
 
 
+		private bool refreshingDatabase;
+
 		private bool RefreshDatabase()
 		{
-			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.Current.Properties[App.PATH_KEY] as string };
+			refreshingDatabase = true;
+			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.instance.path };
 			if (dialog.ShowDialog() == winform.DialogResult.OK)
 			{
 				if (!Database.instance.Refresh(dialog.SelectedPath))
 				{
 					MessageBox.Show("Xảy ra lỗi ! Không có permission để truy cập thư mục !");
+					refreshingDatabase = false;
 					return false;
 				}
-				App.Current.Properties[App.PATH_KEY] = dialog.SelectedPath;
-				manualClose = true;
-				winform.Application.Restart();
-				App.Current.Shutdown();
+				App.instance.path = dialog.SelectedPath;
+				Close();
+				new MainWindow().Show();
+				refreshingDatabase = false;
 				return true;
 			}
+			refreshingDatabase = false;
 			return false;
+		}
+		#endregion
+
+
+		#region WINDOW EVENT
+		private void Window_Activated(object sender, EventArgs e)
+		{
+			if (refreshingDatabase) return;
+			if (!App.instance.CheckReset())
+				if (Database.instance.rootFolder != null) UpdateFolderTree();
+				else while (!RefreshDatabase()) ;
+		}
+
+
+		private bool manualClose;
+
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			if (e.Cancel = !manualClose) return;
+			cancelSource.Cancel(); cancelListening.Cancel();
+		}
+
+
+		public new void Close()
+		{
+			instance = null;
+			manualClose = true;
+			base.Close();
+		}
+
+
+		private void Window_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt)) RefreshDatabase();
 		}
 		#endregion
 
@@ -169,7 +209,20 @@ namespace MediaPlayer
 		#region Ô TÌM KIẾM
 		private void TextBox_KeyDown(object sender, KeyEventArgs e)
 		{
-			if (Keyboard.IsKeyDown(Key.Enter)) fileList.Focus();
+			if (Keyboard.IsKeyDown(Key.Enter)) SearchYoutube(Database.CreateKeyword(searchBox.Text));
+		}
+
+
+		private void SearchYoutube(string textToSearch)
+		{
+			char[] array = textToSearch.ToCharArray();
+			for (int i = 0; i < array.Length; ++i) if (array[i] == ' ') array[i] = '+';
+			textToSearch = new string(array);
+			var p = new Process();
+			p.StartInfo.FileName = "chrome";
+			p.StartInfo.Arguments = $@"https://www.youtube.com/results?search_query={textToSearch} --parent-window --start-maximized";
+			p.StartInfo.WindowStyle = ProcessWindowStyle.Maximized;
+			p.Start();
 		}
 
 
@@ -277,28 +330,11 @@ namespace MediaPlayer
 		#endregion
 
 
-		#region WINDOW EVENT
-		private bool manualClose;
-
-		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-		{
-			if (e.Cancel = !manualClose) return;
-			cancelSource.Cancel(); cancelListening.Cancel();
-		}
-
-		private void Window_KeyDown(object sender, KeyEventArgs e)
-		{
-			if (Keyboard.IsKeyDown(Key.A) && Keyboard.IsKeyDown(Key.B)) RefreshDatabase();
-		}
-		#endregion
-
-
 		private void Play()
 		{
-			var item = fileList.SelectedItem as ListBoxItem;
+			var item = fileList.SelectedItem as ListViewItem;
 			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\"  /fullscreen");
 		}
-
 	}
 
 
