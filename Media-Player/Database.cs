@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Speech.Recognition;
 using System.IO.IsolatedStorage;
-
+using System.Collections;
 
 namespace MediaPlayer
 {
@@ -481,5 +481,22 @@ namespace MediaPlayer
 			return result;
 		}
 		#endregion
+
+
+		public IEnumerator<Folder> GetFolders()
+		{
+			var a = new List<Folder>() { rootFolder };
+			var b = new List<Folder>();
+			do
+			{
+				foreach (var folder in a)
+				{
+					yield return folder;
+					b.AddRange(folder.children);
+				}
+
+				var t = a; a = b; b = t; b.Clear();
+			} while (a.Count != 0);
+		}
 	}
 }

@@ -48,8 +48,6 @@ namespace MediaPlayer
 					writer.Close();
 				}
 				storage.Close();
-				Watcher.instance?.Dispose();
-				if (_path != "") new Watcher(_path);
 			}
 		}
 
@@ -59,7 +57,8 @@ namespace MediaPlayer
 			Database.initializeCompleted += () =>
 			{
 				PopupWaiting.instance.Close();
-				if (Database.instance.rootFolder == null) instance.path = "";
+				if (Database.instance.rootFolder == null) { instance.path = ""; Watcher.instance?.Dispose(); }
+				else new Watcher();
 				new MainWindow().Show();
 			};
 		}
@@ -72,7 +71,7 @@ namespace MediaPlayer
 		}
 
 
-		private sealed class Watcher
+		public sealed class Watcher
 		{
 			public static Watcher instance { get; private set; }
 			private readonly List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
@@ -80,11 +79,11 @@ namespace MediaPlayer
 
 
 
-			public Watcher(string rootFolderPath)
+			public Watcher()
 			{
 				if (instance == null) instance = this; else throw new Exception();
-				Register(rootFolderPath);
-				foreach (string subDir in Directory.GetDirectories(rootFolderPath)) Register(subDir);
+				var e = Database.instance.GetFolders();
+				while (e.MoveNext()) Register(e.Current.path);
 			}
 
 
@@ -193,9 +192,6 @@ namespace MediaPlayer
 		{
 			// Chỉ cho phép 1 process chạy.
 			if (Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName).Length > 1) { Shutdown(); return; }
-
-			// Khởi tạo watcher
-			if (path != "") new Watcher(path);
 
 			// Khởi tạo database
 			new PopupWaiting().Show();
