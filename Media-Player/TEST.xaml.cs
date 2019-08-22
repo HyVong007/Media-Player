@@ -28,16 +28,22 @@ namespace MediaPlayer
 		}
 
 
-		const string FILE = "TAM.TXT";
+		const string FILE = @"DIR\TAM.TXT";
 
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
 			using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
-			using (var stream = new IsolatedStorageFileStream(FILE, FileMode.Create, storage))
+			using (var stream = new IsolatedStorageFileStream("tam.txt", FileMode.Create, storage))
+			using (var writer = new StreamWriter(stream))
 			{
-				stream.Close();
+				writer.WriteLine("kaka");
 
-				MessageBox.Show(storage.FileExists(FILE).ToString());
+
+
+
+				writer.Flush();
+				writer.Close();
+				stream.Close();
 				storage.Close();
 			}
 		}
@@ -45,11 +51,29 @@ namespace MediaPlayer
 
 		private void Button_Click_1(object sender, RoutedEventArgs e)
 		{
-			using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
+			try
 			{
-				storage.DeleteFile(FILE);
-				MessageBox.Show(storage.FileExists(FILE).ToString());
-				storage.Close();
+				using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
+				using (var stream = new IsolatedStorageFileStream(FILE, FileMode.Open, storage))
+				using (var reader = new StreamReader(stream))
+				{
+					textBlock.Text += new DirectoryInfo("DIR").LastWriteTimeUtc + "\n";
+
+
+
+
+
+
+
+
+					reader.Close();
+					stream.Close();
+					storage.Close();
+				}
+			}
+			catch (Exception)
+			{
+
 			}
 		}
 	}

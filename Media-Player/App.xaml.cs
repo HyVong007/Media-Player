@@ -127,7 +127,13 @@ namespace MediaPlayer
 
 			private void Register(string path)
 			{
-				var watcher = new FileSystemWatcher(path);
+				FileSystemWatcher watcher = null;
+				try
+				{
+					watcher = new FileSystemWatcher(path);
+				}
+				catch (Exception) { Database.instance.rootFolder = null; return; }
+
 				watcher.IncludeSubdirectories = false;
 				watcher.Created += Watcher_Created;
 				watcher.Deleted += Watcher_Deleted;

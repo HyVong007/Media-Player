@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Speech.Recognition;
 using System.IO.IsolatedStorage;
-using System.Collections;
+
 
 namespace MediaPlayer
 {

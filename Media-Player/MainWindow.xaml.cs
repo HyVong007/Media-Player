@@ -69,7 +69,7 @@ namespace MediaPlayer
 		{
 			if (refreshingDatabase) return;
 			if (!App.instance.CheckReset())
-				if (Database.instance.rootFolder != null) UpdateFolderTree();
+				if (Database.instance.rootFolder != null) { if (!folderTreeView.HasItems) UpdateFolderTree(); }
 				else while (!RefreshDatabase()) ;
 		}
 
@@ -336,7 +336,14 @@ namespace MediaPlayer
 		private void Play()
 		{
 			var item = fileList.SelectedItem as ListViewItem;
-			if (item != null) Process.Start(@"C:\Program Files\Windows Media Player\wmplayer.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\"  /fullscreen");
+			if (item != null) Process.Start(@"C:\Program Files\MPC-HC\mpc-hc64.exe", $"/play /fullscreen \"{$@"{item.ToolTip}\{item.Content}"}\"")
+					.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => { Database.instance.rootFolder = null; while (!RefreshDatabase()) ; };
+		}
+
+
+		private void Window_MouseEnter(object sender, MouseEventArgs e)
+		{
+			Activate();
 		}
 	}
 

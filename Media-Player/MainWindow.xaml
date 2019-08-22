@@ -20,6 +20,7 @@
 		KeyDown="Window_KeyDown"
 		ShowActivated="True"
 		Activated="Window_Activated"
+		MouseEnter="Window_MouseEnter"
 		>
 
 
