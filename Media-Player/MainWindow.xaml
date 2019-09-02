@@ -20,7 +20,7 @@
 		KeyDown="Window_KeyDown"
 		ShowActivated="True"
 		Activated="Window_Activated"
-		MouseEnter="Window_MouseEnter"
+		Loaded="Window_Loaded"
 		>
 
 
@@ -151,12 +151,12 @@
 							<Setter Property="Background" Value="YellowGreen"/>
 							<Style.Triggers>
 								<Trigger Property="Orientation" Value="Horizontal">
-									<Setter Property="Height" Value="30" />
-									<Setter Property="MinHeight" Value="30" />
+									<Setter Property="Height" Value="20" />
+									<Setter Property="MinHeight" Value="20" />
 								</Trigger>
 								<Trigger Property="Orientation" Value="Vertical">
-									<Setter Property="Width" Value="30" />
-									<Setter Property="MinWidth" Value="30" />
+									<Setter Property="Width" Value="20" />
+									<Setter Property="MinWidth" Value="20" />
 								</Trigger>
 							</Style.Triggers>
 						</Style>

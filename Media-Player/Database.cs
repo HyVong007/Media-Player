@@ -5,11 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Speech.Recognition;
 using System.IO.IsolatedStorage;
+using System.Collections;
 
 
 namespace MediaPlayer
 {
-	public sealed class Database
+	public sealed class Database : IEnumerable<Database.Folder>
 	{
 		public sealed class Folder
 		{
@@ -415,7 +416,6 @@ namespace MediaPlayer
 			voiceListener.SetInputToDefaultAudioDevice();
 			voiceListener.SpeechRecognized += (object sender, SpeechRecognizedEventArgs e) => result = e.Result.Text;
 			voiceListener.RecognizeCompleted += (object sender, RecognizeCompletedEventArgs e) => recognizeCompleted = true;
-			//voiceListener.LoadGrammarCompleted += (object sender, LoadGrammarCompletedEventArgs e) => VoiceListenerInitialized?.Invoke();
 
 			var choices = new Choices();
 			var a = new List<Folder>() { rootFolder };
@@ -431,9 +431,6 @@ namespace MediaPlayer
 						foreach (var w in ToWords(Path.GetFileNameWithoutExtension(filePath))) name += $"{w} ";
 
 						choices.Add(name);
-						//choices.Add(CreateKeyword(Path.GetFileNameWithoutExtension(filePath)));
-
-						//await Task.Delay(1);
 					}
 
 					foreach (var childFolder in folder.children) b.Add(childFolder);
@@ -442,19 +439,9 @@ namespace MediaPlayer
 				var t = a; a = b; b = t; b.Clear();
 			} while (a.Count != 0);
 
-			/*choices = new Choices(new string[]
-			{
-				"tinh anh ban chieu", "nguoi dien yeu trang", "chuyen tau hoang hon", "pho dem",
-				"ao cuoi mau hoa ca", "long me", "me yeu", "huyen thoai me", "nuoc mat ben them",
-				"quan nua khuya", "nguoi di ngoai pho", "vo dong so bach thu ha"
-			});*/
-
-
-
 
 			var gb = new GrammarBuilder();
 			gb.Append(choices);
-			//gb.AppendDictation();
 			gb.AppendWildcard();
 			voiceListener.LoadGrammar(new Grammar(gb));
 			voiceListenerInitialized?.Invoke();
@@ -484,7 +471,7 @@ namespace MediaPlayer
 		#endregion
 
 
-		public IEnumerator<Folder> GetFolders()
+		public IEnumerator<Folder> GetEnumerator()
 		{
 			var a = new List<Folder>() { rootFolder };
 			var b = new List<Folder>();
@@ -499,5 +486,8 @@ namespace MediaPlayer
 				var t = a; a = b; b = t; b.Clear();
 			} while (a.Count != 0);
 		}
+
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 }

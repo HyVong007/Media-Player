@@ -33,44 +33,19 @@ namespace MediaPlayer
 			Top = 0;
 			Database.instance.voiceListenerInitialized += () => Dispatcher.Invoke(() => voiceButton.Visibility = Visibility.Visible);
 		}
-
-
-		private bool refreshingDatabase;
-
-		private bool RefreshDatabase()
-		{
-			refreshingDatabase = true;
-			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.instance.path };
-			if (dialog.ShowDialog() == winform.DialogResult.OK)
-			{
-				if (!Database.instance.Refresh(dialog.SelectedPath))
-				{
-					MessageBox.Show("Xảy ra lỗi ! Không có permission để truy cập thư mục !");
-					refreshingDatabase = false;
-					return false;
-				}
-				App.instance.path = dialog.SelectedPath;
-				App.instance.okState = true;
-				App.Watcher.instance?.Dispose();
-				new App.Watcher();
-				Close();
-				new MainWindow().Show();
-				refreshingDatabase = false;
-				return true;
-			}
-			refreshingDatabase = false;
-			return false;
-		}
 		#endregion
 
 
 		#region WINDOW EVENT
 		private void Window_Activated(object sender, EventArgs e)
 		{
-			if (refreshingDatabase) return;
-			if (!App.instance.CheckReset())
-				if (Database.instance.rootFolder != null) { if (!folderTreeView.HasItems) UpdateFolderTree(); }
-				else while (!RefreshDatabase()) ;
+			if (Database.instance.IsRefreshing()) return;
+			if (Watcher.instance?.CheckReset() != true)
+				if (Database.instance.rootFolder != null)
+				{
+					if (!folderTreeView.HasItems) UpdateFolderTree();
+				}
+				else Database.instance.ShowRefreshDialog();
 		}
 
 
@@ -93,7 +68,13 @@ namespace MediaPlayer
 
 		private void Window_KeyDown(object sender, KeyEventArgs e)
 		{
-			if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt)) RefreshDatabase();
+			if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift) && Keyboard.IsKeyDown(Key.LeftAlt)) Database.instance.ShowRefreshDialog();
+		}
+
+
+		private void Window_Loaded(object sender, RoutedEventArgs e)
+		{
+			Focus();
 		}
 		#endregion
 
@@ -333,18 +314,22 @@ namespace MediaPlayer
 		#endregion
 
 
+		#region PLAY
+		private Process mpc;
+
+
 		private void Play()
 		{
 			var item = fileList.SelectedItem as ListViewItem;
-			if (item != null) Process.Start(@"C:\Program Files\MPC-HC\mpc-hc64.exe", $"/play /fullscreen \"{$@"{item.ToolTip}\{item.Content}"}\"")
-					.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => { Database.instance.rootFolder = null; while (!RefreshDatabase()) ; };
+			if (item != null)
+			{
+				if (mpc?.HasExited == false) mpc.CloseMainWindow();
+				mpc = Process.Start(@"C:\Program Files (x86)\K-Lite Codec Pack\MPC-HC64\mpc-hc64.exe", $"\"{$@"{item.ToolTip}\{item.Content}"}\" /play /fullscreen /new");
+				mpc.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => { Database.instance.rootFolder = null; Database.instance.ShowRefreshDialog(); };
+				mpc.Exited += (object sender, EventArgs e) => Activate();
+			}
 		}
-
-
-		private void Window_MouseEnter(object sender, MouseEventArgs e)
-		{
-			Activate();
-		}
+		#endregion
 	}
 
 
@@ -381,5 +366,41 @@ namespace MediaPlayer
 			}
 			return foundElement as T;
 		}
+
+
+		#region << Hiển thị Dialog cập nhật database >>
+		private static bool isRefreshing;
+
+		public static bool IsRefreshing(this Database d) => isRefreshing;
+
+
+		public static void ShowRefreshDialog(this Database d)
+		{
+			isRefreshing = true;
+			var dialog = new winform.FolderBrowserDialog() { ShowNewFolderButton = false, SelectedPath = App.instance.path };
+
+			while (true)
+			{
+				if (dialog.ShowDialog() == winform.DialogResult.OK)
+				{
+					if (!d.Refresh(dialog.SelectedPath))
+					{
+						MessageBox.Show("Xảy ra lỗi ! Không có quyền truy cập thư mục !");
+						continue;
+					}
+
+					isRefreshing = false;
+					App.instance.path = dialog.SelectedPath;
+					dialog.Dispose();
+					Watcher.okState = true;
+					Watcher.instance?.Dispose();
+					new Watcher();
+					MainWindow.instance.Close();
+					new MainWindow().Show();
+					return;
+				}
+			}
+		}
+		#endregion
 	}
 }
