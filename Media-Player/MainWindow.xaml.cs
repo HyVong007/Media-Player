@@ -159,7 +159,7 @@ namespace MediaPlayer
 			if (Keyboard.IsKeyDown(Key.Enter)) { Play(); return; }
 
 			// Cuộn đến item có content chứa kí tự vừa nhập
-			char c = default;
+			char c;
 			if (Key.A <= e.Key && e.Key <= Key.Z) c = e.Key.ToString()[0];
 			else if (Key.D0 <= e.Key && e.Key <= Key.D9) c = e.Key.ToString()[1];
 			else if (Key.NumPad0 <= e.Key && e.Key <= Key.NumPad9) c = e.Key.ToString()[6];

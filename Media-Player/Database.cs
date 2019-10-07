@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Speech.Recognition;
 using System.IO.IsolatedStorage;
 using System.Collections;
+using System.Windows;
 
 
 namespace MediaPlayer
@@ -39,12 +40,24 @@ namespace MediaPlayer
 		public Database(string rootFolderPath, bool update)
 		{
 			instance = this;
-			if (!update && Cache_To_Instance()) goto COMPLETED;
+			if (!update && Application.Current.Contains<Folder>(CACHE_KEY))
+			{
+				rootFolder = Application.Current.Read<Folder>(CACHE_KEY);
+				foreach (var folder in this)
+					foreach (var child in folder.children) child.parent = folder;
+				goto COMPLETED;
+			}
+
 			if (rootFolderPath != "")
 			{
 				try { Path_To_Instance(rootFolderPath); }
 				catch (Exception) { rootFolder = null; }
-				if (rootFolder != null) Instance_To_Cache();
+				if (rootFolder != null)
+					Application.Current.Write(CACHE_KEY, rootFolder,
+							   new Newtonsoft.Json.JsonSerializerSettings()
+							   {
+								   ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+							   });
 			}
 
 		COMPLETED:
@@ -80,84 +93,7 @@ namespace MediaPlayer
 			} while (a.Count != 0);
 		}
 
-
-		private const string CACHE_FILE = "CACHE.TXT";
-
-		/// <summary>
-		/// Main thread write file.
-		/// </summary>
-		private void Instance_To_Cache()
-		{
-			var storage = IsolatedStorageFile.GetUserStoreForDomain();
-			using (var stream = new IsolatedStorageFileStream(CACHE_FILE, FileMode.Create, storage))
-			using (var writer = new StreamWriter(stream))
-			{
-				var a = new List<Folder>() { rootFolder };
-				var b = new List<Folder>();
-				do
-				{
-					foreach (var folder in a)
-					{
-						writer.WriteLine(folder.path);
-						writer.WriteLine(folder.files.Length);
-						writer.WriteLine(folder.children.Length);
-						foreach (string file in folder.files) writer.WriteLine(file);
-						b.AddRange(folder.children);
-					}
-
-					var t = a; a = b; b = t; b.Clear();
-				} while (a.Count != 0);
-				writer.Flush();
-				writer.Close();
-			}
-			storage.Close();
-		}
-
-
-		/// <summary>
-		/// Read file. Thread ???
-		/// <para>Return true: thành công, False: thất bại.</para>
-		/// </summary>
-		private bool Cache_To_Instance()
-		{
-			var storage = IsolatedStorageFile.GetUserStoreForDomain();
-			try
-			{
-				using (var stream = new IsolatedStorageFileStream(CACHE_FILE, FileMode.Open, storage))
-				using (var reader = new StreamReader(stream))
-				{
-					Folder CreateFolder()
-					{
-						var folder = new Folder()
-						{
-							path = reader.ReadLine(),
-							files = new string[Convert.ToInt32(reader.ReadLine())],
-							children = new Folder[Convert.ToInt32(reader.ReadLine())]
-						};
-						for (int i = 0; i < folder.files.Length; ++i) folder.files[i] = reader.ReadLine();
-						return folder;
-					}
-
-					var a = new List<Folder>() { (rootFolder = CreateFolder()) };
-					var b = new List<Folder>();
-					do
-					{
-						foreach (var folder in a)
-						{
-							for (int i = 0; i < folder.children.Length; (folder.children[i++] = CreateFolder()).parent = folder) ;
-							b.AddRange(folder.children);
-						}
-
-						var t = a; a = b; b = t; b.Clear();
-					} while (a.Count != 0);
-					reader.Close();
-				}
-			}
-			catch (Exception) { return false; }
-			finally { storage.Close(); }
-			return true;
-		}
-
+		private const string CACHE_KEY = "CACHE";
 
 		/// <summary>
 		/// Main Thread write file.
@@ -168,7 +104,11 @@ namespace MediaPlayer
 			var backup = rootFolder;
 			try { Path_To_Instance(rootFolderPath); }
 			catch (Exception) { rootFolder = backup; return false; }
-			Instance_To_Cache();
+			Application.Current.Write(CACHE_KEY, rootFolder,
+				new Newtonsoft.Json.JsonSerializerSettings()
+				{
+					ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+				});
 			return true;
 		}
 		#endregion

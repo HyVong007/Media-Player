@@ -19,7 +19,7 @@ namespace MediaPlayer
 		private readonly ConcurrentQueue<WatcherChangeTypes> queue = new ConcurrentQueue<WatcherChangeTypes>();
 
 		#region << okState >>
-		private const string OKSTATE_FILE = "OKSTATE.TXT";
+		private const string OKSTATE_KEY = "OKSTATE";
 		private static bool? _okState;
 
 		/// <summary>
@@ -28,30 +28,12 @@ namespace MediaPlayer
 		/// </summary>
 		public static bool okState
 		{
-			get
-			{
-				if (_okState != null) return _okState.Value;
-				using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
-				{
-					_okState = storage.FileExists(OKSTATE_FILE);
-					storage.Close();
-				}
-				return _okState.Value;
-			}
+			get => _okState != null ? _okState.Value : App.Current.Contains<bool>(OKSTATE_KEY);
 
 			set
 			{
 				if (_okState == value) return;
-				_okState = value;
-				using (var storage = IsolatedStorageFile.GetUserStoreForDomain())
-				{
-					if (value)
-					{
-						if (!storage.FileExists(OKSTATE_FILE)) using (var stream = new IsolatedStorageFileStream(OKSTATE_FILE, FileMode.Create, storage)) stream.Close();
-					}
-					else if (storage.FileExists(OKSTATE_FILE)) storage.DeleteFile(OKSTATE_FILE);
-					storage.Close();
-				}
+				App.Current.Write(OKSTATE_KEY, (_okState = value) == true ? true : (bool?)null);
 			}
 		}
 		#endregion
@@ -63,6 +45,7 @@ namespace MediaPlayer
 			if (instance == null) instance = this; else throw new Exception();
 			Register();
 		}
+
 
 
 		private bool Register(string path)

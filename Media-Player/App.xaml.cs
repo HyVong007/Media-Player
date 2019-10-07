@@ -11,41 +11,17 @@ namespace MediaPlayer
 	{
 		public static App instance { get; private set; }
 
-		private const string PATH_FILE = "PATH.TXT";
-		private string _path;
+		private const string PATH_KEY = "PATH";
+		private string _path = "";
 		public string path
 		{
-			get
-			{
-				if (_path != null) return _path;
-				var storage = IsolatedStorageFile.GetUserStoreForDomain();
-				try
-				{
-					using (var stream = new IsolatedStorageFileStream(PATH_FILE, FileMode.Open, storage))
-					using (var reader = new StreamReader(stream))
-					{
-						_path = reader.ReadLine();
-						reader.Close();
-					}
-				}
-				catch (Exception) { _path = ""; }
-				finally { storage.Close(); }
-				return _path;
-			}
+			get => _path.Length == 0 && Current.Contains<string>(PATH_KEY) ? _path = Current.Read<string>(PATH_KEY) : _path;
 
 			set
 			{
 				if (_path == value) return;
 				_path = value ?? throw new Exception();
-				var storage = IsolatedStorageFile.GetUserStoreForDomain();
-				using (var stream = new IsolatedStorageFileStream(PATH_FILE, FileMode.Create, storage))
-				using (var writer = new StreamWriter(stream))
-				{
-					writer.WriteLine(_path);
-					writer.Flush();
-					writer.Close();
-				}
-				storage.Close();
+				Current.Write(PATH_KEY, value);
 			}
 		}
 
